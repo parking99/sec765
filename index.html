@@ -176,10 +176,22 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .lightbox.show{display:flex}
 .lightbox img{max-width:92vw;max-height:88vh;border-radius:10px}
 
+/* ── CERT MODAL CLOSE ── */
+.cert-close-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 14px 0;
+}
+.cert-close-btn{
+  display:flex;align-items:center;gap:6px;
+  background:#FFF0F0;border:1.5px solid #E0AAAA;border-radius:10px;
+  padding:7px 16px;font-family:inherit;font-size:13px;font-weight:700;
+  color:#C0392B;cursor:pointer;transition:all .15s;
+}
+.cert-close-btn:hover{background:#FFE0E0;border-color:#C0392B;transform:scale(1.03)}
+.cert-close-btn .x-icon{font-size:16px;font-weight:900;line-height:1}background:var(--ice);border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:2;border-right:4px solid var(--teal)}
+
 /* ── SETUP ── */
 .setup-step{background:var(--ice);border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:2;border-right:4px solid var(--teal)}
-
-/* ── LOADING / TOAST ── */
 .loading-overlay{position:fixed;inset:0;background:rgba(7,24,48,.8);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 .loading-overlay.show{display:flex}
 .spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite}
@@ -603,12 +615,19 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 
 <!-- Cert Modal -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)this.classList.remove('show')">
-  <div class="modal">
-    <button class="modal-close" onclick="document.getElementById('overlay').classList.remove('show')">✕</button>
-    <div id="certContent"></div>
-    <div class="btn-row" style="margin-top:14px">
-      <button class="btn btn-pdf" onclick="downloadPDF()">📄 تحميل PDF</button>
+  <div class="modal" style="padding:0;overflow:hidden">
+    <!-- Close & Download Bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-bottom:1.5px solid #D0DCE8;position:sticky;top:0;z-index:10">
+      <button onclick="document.getElementById('overlay').classList.remove('show')"
+        style="display:flex;align-items:center;gap:6px;background:#fff;border:2px solid #C0392B;border-radius:10px;padding:7px 16px;font-family:inherit;font-size:14px;font-weight:700;color:#C0392B;cursor:pointer">
+        <span style="font-size:18px;font-weight:900;line-height:1">✕</span> رجوع
+      </button>
+      <button onclick="downloadPDF()"
+        style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#007AB8,#00AEEF);border:none;border-radius:10px;padding:7px 18px;font-family:inherit;font-size:14px;font-weight:700;color:#fff;cursor:pointer">
+        📄 تحميل PDF
+      </button>
     </div>
+    <div id="certContent" style="padding:16px"></div>
   </div>
 </div>
 
@@ -1278,7 +1297,7 @@ function buildCert(mode){
       </div>
     </div>`:'';
 
-  return `<div class="sec-cert">
+  return `<div class="sec-cert" dir="rtl" style="direction:rtl;font-family:'IBM Plex Sans Arabic',Arial,sans-serif">
     <!-- HEADER -->
     <div class="sec-cert-header">
       <div class="sec-cert-bg"></div>
@@ -1305,7 +1324,7 @@ function buildCert(mode){
     <!-- BODY -->
     <div class="sec-cert-body">
 
-      <!-- جهاز + موظف -->
+      <!-- 1. بيانات الجهاز -->
       <div class="sc-section">
         <div class="sc-section-title">بيانات الجهاز</div>
         <div class="sc-fields">
@@ -1314,36 +1333,38 @@ function buildCert(mode){
         </div>
       </div>
 
+      <!-- 2. بيانات الموظف المُسلَّم له -->
       <div class="sc-section">
-        <div class="sc-section-title">الموظف المُسلَّم له</div>
+        <div class="sc-section-title">${isD?'الموظف المُسلَّم له':'بيانات التسليم الأصلي'}</div>
         <div class="sc-fields">
           <div class="sc-field green"><div class="sfl">الرقم الوظيفي</div><div class="sfv">${empId}</div></div>
-          <div class="sc-field green full"><div class="sfl">الاسم</div><div class="sfv">${empName}</div></div>
+          <div class="sc-field green"><div class="sfl">الاسم</div><div class="sfv">${empName}</div></div>
         </div>
       </div>
 
+      <!-- 3. بيانات المُستلِم (في حالة الاستلام فقط) -->
       ${receiverBlock}
 
-      <!-- إقرار -->
-      <div class="sc-confirm ${mode}">
-        <strong>${isD?'✅ إقرار التسليم:':'✅ إقرار الاستلام:'}</strong>
+      <!-- 4. إقرار -->
+      <div class="sc-confirm ${mode}" style="text-align:right;direction:rtl">
+        <strong>${isD?'✅ إقرار التسليم:':'✅ إقرار الاستلام:'}</strong><br>
         ${isD
           ?`تم تسليم الجهاز المذكور أعلاه في ${gate} بحالة سليمة. يُقرّ المستلِم باستلامه وفق ما هو مذكور في هذه الوثيقة وتاريخه ${dStr}.`
           :`تم استلام الجهاز رسمياً من ${gate}. يُقرّ المستلِم بأنه تسلّم الجهاز ويتحمل المسؤولية الكاملة عنه اعتباراً من ${dStr}.`}
       </div>
 
-      <!-- حالة -->
+      <!-- 5. حالة الجهاز -->
       <div class="sc-section">
-        <div class="sc-section-title">حالة الجهاز عند التسليم</div>
+        <div class="sc-section-title">${isD?'حالة الجهاز عند التسليم':'تأكيدات الاستلام'}</div>
         <div class="sc-checks">
-          ${checks.map(i=>`<div class="sc-check-item"><div class="sc-chk">✓</div>${i}</div>`).join('')}
+          ${checks.map(i=>`<div class="sc-check-item"><div class="sc-chk">✓</div><span>${i}</span></div>`).join('')}
         </div>
       </div>
 
-      <!-- ملاحظات -->
-      ${notes?`<div class="sc-section"><div class="sc-section-title">ملاحظات</div><div class="sc-field full"><div class="sfv">${notes}</div></div></div>`:''}
+      <!-- 6. ملاحظات -->
+      ${notes?`<div class="sc-section"><div class="sc-section-title">ملاحظات</div><div class="sc-field full" style="grid-column:span 2"><div class="sfv">${notes}</div></div></div>`:''}
 
-      <!-- صور احترافية -->
+      <!-- 7. صور -->
       ${photosBlock}
 
     </div><!-- /body -->
@@ -1351,7 +1372,7 @@ function buildCert(mode){
     <!-- SIGNATURE -->
     <div class="sc-sig-row">
       <div class="sc-sig-box">
-        ${hasSig?`<img src="${sigImg}" alt="توقيع" style="max-height:52px;margin-bottom:5px">`:'<div style="height:52px"></div>'}
+        ${hasSig?`<img src="${sigImg}" alt="توقيع" style="max-height:52px;margin-bottom:5px;display:block;margin-right:auto;margin-left:auto">`:'<div style="height:52px"></div>'}
         <div class="sc-sig-line"></div>
         <div class="sc-sig-name">${signerName}</div>
         <div class="sc-sig-role">${signerRole}</div>
@@ -1374,23 +1395,73 @@ function buildCert(mode){
 
 async function downloadPDF(){
   const{jsPDF}=window.jspdf;
-  const tmp=document.createElement('div');
-  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:680px;padding:10px;background:#fff;direction:rtl;font-family:IBM Plex Sans Arabic,sans-serif;';
-  tmp.innerHTML=document.getElementById('certContent').innerHTML;
-  document.body.appendChild(tmp);
   if(!window.html2canvas)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
   showLoading('جاري إنشاء PDF...');
   try{
-    const c=await html2canvas(tmp,{scale:2,useCORS:true,backgroundColor:'#fff',allowTaint:true});
-    document.body.removeChild(tmp);
-    const img=c.toDataURL('image/jpeg',.93);
-    const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
-    const w=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
-    const h=(c.height*w)/c.width;
-    let y=0;while(y<h){if(y>0)pdf.addPage();pdf.addImage(img,'JPEG',0,-y,w,h);y+=ph;}
+    // Build a standalone RTL page for proper Arabic rendering
+    const certHTML = document.getElementById('certContent').innerHTML;
+    const fontLink = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700;800&display=swap">';
+    const styles = Array.from(document.styleSheets)
+      .filter(s=>{ try{return s.cssRules&&s.href===null}catch(e){return false} })
+      .map(s=>Array.from(s.cssRules).map(r=>r.cssText).join('\n')).join('\n');
+
+    // Use an iframe for isolated, correct RTL rendering
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText='position:fixed;left:-9999px;top:0;width:794px;height:1px;border:none;visibility:hidden';
+    document.body.appendChild(iframe);
+
+    const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iDoc.open();
+    iDoc.write(`<!DOCTYPE html><html lang="ar" dir="rtl">
+      <head><meta charset="UTF-8">${fontLink}
+      <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;background:#fff;direction:rtl;width:754px;padding:20px}
+        :root{--navy:#0B2A5A;--blue:#1565C0;--blue2:#1976D2;--teal:#00AEEF;--teal2:#0097CC;
+          --sec-green:#00C9A7;--gold:#C8960C;--ice:#EDF4FA;--white:#FFF;
+          --gray:#6B7A8D;--border:#D0DCE8;--red:#C0392B;--green:#1A7A4A;--orange:#D4691E}
+        ${styles}
+      </style></head>
+      <body>${certHTML}</body></html>`);
+    iDoc.close();
+
+    // Wait for fonts to load
+    await new Promise(r => setTimeout(r, 1200));
+
+    // Resize iframe to content
+    const body = iDoc.body;
+    iframe.style.height = body.scrollHeight + 'px';
+    await new Promise(r => setTimeout(r, 200));
+
+    const c = await html2canvas(body, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#fff',
+      allowTaint: true,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: 754,
+      logging: false
+    });
+    document.body.removeChild(iframe);
+
+    const img = c.toDataURL('image/jpeg', .93);
+    const pdf = new jsPDF({orientation:'p', unit:'mm', format:'a4'});
+    const w = pdf.internal.pageSize.getWidth();
+    const ph = pdf.internal.pageSize.getHeight();
+    const h = (c.height * w) / c.width;
+    let y = 0;
+    while(y < h){
+      if(y > 0) pdf.addPage();
+      pdf.addImage(img, 'JPEG', 0, -y, w, h);
+      y += ph;
+    }
     pdf.save(`${currentMode==='deliver'?'تسليم':'استلام'}_${currentCertId||''}.pdf`);
     showToast('✅ تم تحميل PDF','success');
-  }catch(e){showToast('❌ خطأ في PDF','error');}
+  }catch(e){
+    console.error(e);
+    showToast('❌ خطأ في PDF: '+e.message,'error');
+  }
   finally{hideLoading();}
 }
 

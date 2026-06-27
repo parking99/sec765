@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام تسليم واستلام الأجهزة</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1D3A;--teal:#0E7C7B;--teal2:#11A39D;--gold:#C8960C;
+  --ice:#EDF4F7;--white:#FFF;--gray:#6B7A8D;--border:#D3DEE8;
+  --red:#C0392B;--green:#1A7A4A;--orange:#D4691E;
+}
+body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--ice);min-height:100vh;color:var(--navy)}
+
+header{background:var(--navy);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.35)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--teal),var(--teal2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px}
+header h1{color:#fff;font-size:18px;font-weight:700}
+header p{color:#8AAABB;font-size:11px;margin-top:2px}
+.badge-date{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 12px;color:#AAC4D0;font-size:12px}
+
+.nav-tabs{display:flex;background:var(--navy);border-top:1px solid rgba(255,255,255,.08);padding:0 16px;overflow-x:auto}
+.nav-tab{padding:11px 14px;color:#7A9BB0;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.nav-tab:hover{color:#fff}
+.nav-tab.active{color:var(--teal2);border-bottom-color:var(--teal2)}
+
+main{max-width:860px;margin:24px auto;padding:0 16px 60px}
+
+.no-config{background:#FFF8E1;border:2px solid var(--gold);border-radius:14px;padding:20px 24px;text-align:center;margin-bottom:20px}
+.no-config p{font-size:14px;color:#7A5800;font-weight:600}
+.no-config button{margin-top:10px;padding:8px 22px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-card .s-num{font-size:28px;font-weight:700}
+.stat-card .s-lbl{font-size:11px;color:var(--gray);margin-top:3px;font-weight:600}
+.stat-card.orange .s-num{color:var(--orange)}
+.stat-card.green  .s-num{color:var(--green)}
+.stat-card.teal   .s-num{color:var(--teal)}
+
+/* Gates */
+.section-title{font-size:12px;font-weight:700;color:var(--gray);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.gates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.gate-btn{background:var(--white);border:2px solid var(--border);border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s}
+.gate-btn:hover{border-color:var(--teal2);transform:translateY(-2px);box-shadow:0 6px 18px rgba(14,124,123,.15)}
+.gate-btn.active{border-color:var(--teal);background:#EAF6F6}
+.gate-btn .g-icon{font-size:28px;margin-bottom:6px}
+.gate-btn .g-name{font-size:13px;font-weight:700;color:var(--navy)}
+.gate-btn .g-count{font-size:11px;margin-top:5px;padding:2px 8px;border-radius:10px;display:inline-block;font-weight:600}
+.gate-btn .g-count.has{background:#FFF3E0;color:var(--orange)}
+.gate-btn .g-count.none{background:#F0F0F0;color:var(--gray)}
+
+/* Pending panel */
+.pending-panel{background:var(--white);border:1px solid var(--border);border-radius:16px;margin-bottom:20px;overflow:hidden;display:none}
+.panel-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-header h3{font-size:14px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px}
+.panel-header .dot{width:8px;height:8px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 3px rgba(212,105,30,.2)}
+.btn-sm{padding:6px 12px;background:var(--ice);border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;color:var(--gray)}
+.btn-sm:hover{border-color:var(--teal2);color:var(--teal2)}
+.btn-sm.teal{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-sm.teal:hover{background:var(--teal2)}
+
+.pending-table{width:100%;border-collapse:collapse}
+.pending-table th{background:var(--ice);padding:9px 14px;font-size:11px;font-weight:700;color:var(--gray);text-align:right;border-bottom:1px solid var(--border)}
+.pending-table td{padding:11px 14px;font-size:13px;border-bottom:1px solid var(--border)}
+.pending-table tr:last-child td{border-bottom:none}
+.pending-table tr:hover td{background:#FAFCFE}
+.badge-p{background:#FFF3E0;color:var(--orange);padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
+.badge-d{background:#EAF5F0;color:var(--green);padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
+.btn-rcv{padding:5px 12px;background:var(--teal);color:#fff;border:none;border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer}
+.btn-rcv:hover{background:var(--teal2)}
+.empty-state{text-align:center;padding:32px 20px;color:var(--gray)}
+.empty-state .e-icon{font-size:38px;margin-bottom:10px}
+.empty-state p{font-size:13px}
+
+/* Card */
+.card{background:var(--white);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(11,29,58,.05);margin-bottom:16px;overflow:hidden}
+.card-header{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--navy)}
+.card-header .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px rgba(14,124,123,.2)}
+.card-body{padding:18px 20px}
+
+/* Form */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row.full{grid-template-columns:1fr}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--gray);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;color:var(--navy);background:var(--ice);outline:none;transition:border-color .15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--teal2);background:#fff}
+.field textarea{resize:vertical;min-height:60px}
+.field input[readonly]{background:#F0F5F8;cursor:default;color:var(--gray)}
+.field input.locked{background:#F7F0E8;border-color:#E8D5B0;color:var(--navy);font-weight:600}
+
+/* Emp lookup */
+.lookup-wrap{position:relative}
+.lookup-badge{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;background:#EAF5F0;color:var(--green);padding:2px 8px;border-radius:8px;font-weight:700;display:none}
+
+/* Frozen badge */
+.frozen-notice{background:#FFF8E1;border:1.5px solid #E8D5A3;border-radius:10px;padding:10px 14px;font-size:12px;color:#7A5800;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+
+/* Cameras */
+.cameras{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cam-zone{border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--ice);position:relative;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cam-zone:hover{border-color:var(--teal2);background:#EAF6F6}
+.cam-zone.has-img{border-style:solid;border-color:var(--teal)}
+.cam-zone img.preview{width:100%;max-height:100px;object-fit:cover;border-radius:7px;margin-bottom:6px}
+.cam-zone .cam-icon{font-size:26px;color:var(--teal2)}
+.cam-zone .cam-label{font-size:12px;font-weight:600;color:var(--navy);margin-top:6px}
+.cam-zone .cam-sub{font-size:10px;color:var(--gray);margin-top:2px}
+.cam-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* Signature */
+.sig-wrap canvas{border:1.5px solid var(--border);border-radius:9px;background:#FAFCFE;cursor:crosshair;touch-action:none}
+.sig-actions{display:flex;gap:10px;margin-top:7px}
+.sig-clear{padding:5px 14px;border:1.5px solid var(--border);border-radius:7px;background:transparent;font-family:inherit;font-size:12px;cursor:pointer;color:var(--gray)}
+.sig-clear:hover{border-color:var(--red);color:var(--red)}
+
+/* Status banner */
+.status-banner{border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px;border:2px solid}
+.status-banner.deliver{background:#EAF6F6;border-color:var(--teal)}
+.status-banner.receive{background:#EAF5F0;border-color:var(--green)}
+.status-banner .s-icon{font-size:26px}
+.status-banner .s-title{font-size:13px;font-weight:700}
+.status-banner.deliver .s-title{color:var(--teal)}
+.status-banner.receive .s-title{color:var(--green)}
+.status-banner .s-sub{font-size:11px;color:var(--gray);margin-top:2px}
+
+/* Buttons */
+.btn-row{display:flex;gap:12px;margin-top:6px}
+.btn{flex:1;padding:13px;border:none;border-radius:11px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.btn-primary{background:linear-gradient(135deg,var(--navy),#183A6A);color:#fff;box-shadow:0 4px 14px rgba(11,29,58,.3)}
+.btn-primary:hover{transform:translateY(-1px)}
+.btn-pdf{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#fff;box-shadow:0 4px 14px rgba(14,124,123,.3)}
+.btn-pdf:hover{transform:translateY(-1px)}
+
+/* Modal / Overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.show{display:flex}
+.modal{background:var(--white);border-radius:18px;max-width:700px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:28px;position:relative}
+.modal-close{position:absolute;top:14px;left:14px;background:var(--ice);border:none;border-radius:7px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--gray);line-height:32px;text-align:center}
+.modal-close:hover{background:#FFE5E5;color:var(--red)}
+
+/* Employee profile card in search */
+.emp-profile{background:linear-gradient(135deg,var(--navy),#183A6A);border-radius:14px;padding:20px;color:#fff;margin-bottom:16px}
+.emp-profile .ep-name{font-size:20px;font-weight:700;margin-bottom:4px}
+.emp-profile .ep-id{font-size:13px;color:#8AAABB}
+.emp-profile .ep-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.ep-stat{background:rgba(255,255,255,.1);border-radius:10px;padding:10px;text-align:center}
+.ep-stat .epn{font-size:22px;font-weight:700}
+.ep-stat .epl{font-size:10px;color:#8AAABB;margin-top:2px}
+.ep-stat.orange .epn{color:#F4A44A}
+.ep-stat.green .epn{color:#5DD99A}
+
+/* Search */
+.search-input-wrap{position:relative;margin-bottom:16px}
+.search-input-wrap input{width:100%;padding:12px 16px 12px 44px;border:2px solid var(--border);border-radius:12px;font-family:inherit;font-size:14px;background:var(--white);outline:none;transition:border-color .2s}
+.search-input-wrap input:focus{border-color:var(--teal2)}
+.search-input-wrap .si-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--gray)}
+
+/* Record cards in search */
+.rec-card{background:var(--white);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.rec-card-top{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.rec-card-body{padding:12px 16px}
+.rec-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rec-field .rf-lbl{font-size:10px;color:var(--gray);font-weight:700}
+.rec-field .rf-val{font-size:13px;color:var(--navy);font-weight:500;margin-top:1px}
+
+/* Drive photos display */
+.drive-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.drive-photo{border-radius:9px;overflow:hidden;border:1px solid var(--border);cursor:zoom-in;background:var(--ice)}
+.drive-photo img{width:100%;height:100px;object-fit:cover;display:block;transition:opacity .4s}
+.drive-photo img.loading{opacity:.15;background:linear-gradient(90deg,var(--ice) 25%,#e0eaf0 50%,var(--ice) 75%);animation:shimmer 1.2s infinite}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.drive-photo .dp-lbl{font-size:10px;text-align:center;color:var(--gray);padding:4px;background:var(--ice)}
+.drive-photo .dp-err{height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FFF8E1;font-size:11px;color:#7A5800;gap:4px}
+
+/* Lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:none;align-items:center;justify-content:center}
+.lightbox.show{display:flex}
+.lightbox img{max-width:92vw;max-height:88vh;border-radius:10px}
+.lightbox-close{position:absolute;top:18px;right:18px;background:rgba(255,255,255,.15);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:18px;cursor:pointer}
+
+/* Cert */
+.cert-header{text-align:center;padding-bottom:16px;border-bottom:2px solid var(--border);margin-bottom:18px}
+.cert-logo-area{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:6px}
+.cert-logo-box{width:42px;height:42px;background:linear-gradient(135deg,var(--navy),#183A6A);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.cert-title{font-size:19px;font-weight:700;color:var(--navy)}
+.cert-subtitle{font-size:11px;color:var(--gray);margin-top:2px}
+.cert-type-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 16px;border-radius:26px;font-size:13px;font-weight:700;margin-top:10px}
+.cert-type-badge.deliver{background:#EAF6F6;color:var(--teal);border:1.5px solid var(--teal)}
+.cert-type-badge.receive{background:#EAF5F0;color:var(--green);border:1.5px solid var(--green)}
+.cert-section{margin-bottom:16px}
+.cert-section h3{font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.cert-field{background:var(--ice);border-radius:8px;padding:8px 12px}
+.cert-field .cf-label{font-size:10px;color:var(--gray);font-weight:600}
+.cert-field .cf-val{font-size:13px;color:var(--navy);font-weight:500;margin-top:2px}
+.cert-confirm-box{border-radius:11px;padding:13px 16px;border:2px solid;margin:16px 0}
+.cert-confirm-box.deliver{background:#EAF6F6;border-color:var(--teal)}
+.cert-confirm-box.receive{background:#EAF5F0;border-color:var(--green)}
+.cert-confirm-box p{font-size:13px;line-height:1.7}
+.cert-photos{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:7px}
+.cert-photos .ph-wrap{border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.cert-photos img{width:100%;height:110px;object-fit:cover;display:block}
+.cert-photos .ph-label{font-size:10px;text-align:center;color:var(--gray);padding:4px;background:var(--ice)}
+.checklist{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.check-item{display:flex;align-items:center;gap:7px;font-size:12px}
+.check-item .chk{width:17px;height:17px;border-radius:4px;background:var(--teal);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;flex-shrink:0}
+.cert-sig{text-align:center;margin-top:20px;padding-top:16px;border-top:1.5px dashed var(--border)}
+.cert-sig img{max-height:60px;margin-bottom:4px}
+.cert-sig .sig-line{border-top:1px solid var(--navy);width:180px;margin:0 auto 4px}
+.cert-sig p{font-size:11px;color:var(--gray)}
+.cert-footer{text-align:center;margin-top:18px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:#AAB;line-height:1.7}
+.cert-id{font-weight:700;color:var(--gold)}
+
+/* Loading / Toast */
+.loading-overlay{position:fixed;inset:0;background:rgba(11,29,58,.75);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading-overlay.show{display:flex}
+.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--teal2);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay p{color:#fff;font-size:14px;font-weight:600}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 20px;border-radius:26px;font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:300;display:none;align-items:center;gap:7px}
+.toast.show{display:flex;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.refresh-dot{width:7px;height:7px;border-radius:50%;background:#3CB371;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.page{display:none}.page.active{display:block}
+
+/* Setup */
+.setup-step{background:var(--ice);border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:2;border-right:4px solid var(--teal)}
+.code-block{background:#0B1D3A;border-radius:12px;padding:16px;position:relative;margin-top:10px}
+.code-block pre{color:#7DD3FC;font-size:11px;direction:ltr;text-align:left;overflow-x:auto;white-space:pre;line-height:1.6;margin-top:20px}
+.code-block .copy-btn{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;padding:4px 12px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
+.copy-btn:hover{background:rgba(255,255,255,.2)}
+
+@media(max-width:540px){
+  .form-row,.cameras,.cert-grid,.cert-photos,.gates-grid,.stats-row,.rec-grid,.drive-photos,.ep-stats{grid-template-columns:1fr}
+  .gates-grid{grid-template-columns:1fr 1fr}
+  .checklist{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <p id="loadingMsg">جاري التحميل...</p>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🔐</div>
+    <div>
+      <h1>نظام تسليم واستلام الأجهزة</h1>
+      <p>Device Handover Management System</p>
+    </div>
+  </div>
+  <div class="badge-date" id="headerDate"></div>
+</header>
+
+<div class="nav-tabs">
+  <div class="nav-tab active" id="tab-gates"  onclick="showPage('gates')">🏛️ البوابات</div>
+  <div class="nav-tab"        id="tab-deliver" onclick="startDeliver()">📤 تسليم</div>
+  <div class="nav-tab"        id="tab-receive" onclick="showGatesForReceive()">📥 استلام</div>
+  <div class="nav-tab"        id="tab-search"  onclick="showPage('search')">🔍 البحث</div>
+  <div class="nav-tab"        id="tab-setup"   onclick="showPage('setup')">⚙️ الإعدادات</div>
+</div>
+
+<main>
+
+<!-- ══ PAGE: GATES ══ -->
+<div class="page active" id="page-gates">
+  <div id="noConfigBanner" class="no-config" style="display:none">
+    <p>⚠️ لم يتم إعداد رابط Google Sheets بعد</p>
+    <button onclick="showPage('setup')">اذهب للإعدادات</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card orange"><div class="s-num" id="statPending">—</div><div class="s-lbl">⏳ معلقة</div></div>
+    <div class="stat-card green"><div class="s-num" id="statDone">—</div><div class="s-lbl">✅ مُستلمة</div></div>
+    <div class="stat-card teal"><div class="s-num" id="statTotal">—</div><div class="s-lbl">📦 الإجمالي</div></div>
+  </div>
+  <div class="section-title"><span class="refresh-dot"></span>اختر موقع البوابة</div>
+  <div class="gates-grid" id="gatesGrid"></div>
+  <div class="pending-panel" id="pendingPanel">
+    <div class="panel-header">
+      <h3><div class="dot"></div> <span id="pendingTitle">العهد</span></h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm" onclick="refreshData()">🔄 تحديث</button>
+        <button class="btn-sm teal" onclick="startDeliver()">+ تسليم جديد</button>
+      </div>
+    </div>
+    <div id="pendingTableWrap"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: DELIVER ══ -->
+<div class="page" id="page-deliver">
+  <div class="status-banner deliver">
+    <div class="s-icon">📤</div>
+    <div><div class="s-title">وضع التسليم</div><div class="s-sub">سيُسجَّل في الشيت بحالة "معلقة" حتى يستلمها الموظف</div></div>
+  </div>
+
+  <!-- Gate -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> موقع البوابة</div>
+    <div class="card-body">
+      <div class="gates-grid" id="deliverGatesGrid"></div>
+    </div>
+  </div>
+
+  <!-- Device info from Sheet -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> بيانات العهدة</div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="field">
+          <label>نوع الجهاز</label>
+          <select id="d_deviceType">
+            <option value="">اختر نوع الجهاز</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>الرقم التسلسلي / Serial (اختياري)</label>
+          <input type="text" id="d_serial" placeholder="مثال: SN-12345">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>الرقم الوظيفي للموظف المُسلَّم له</label>
+          <div class="lookup-wrap">
+            <input type="text" id="d_empId" placeholder="أدخل الرقم الوظيفي..." oninput="lookupEmp('d',this.value)">
+            <span class="lookup-badge" id="d_empBadge">✓ تم</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>اسم الموظف</label>
+          <input type="text" id="d_empName" readonly placeholder="يظهر تلقائياً...">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="field">
+          <label>ملاحظات (اختياري)</label>
+          <textarea id="d_notes" placeholder="أي ملاحظات على العهدة..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Photos -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> صور الجهاز</div>
+    <div class="card-body">
+      <div class="cameras">
+        <div class="cam-zone" id="d_frontZone">
+          <input type="file" accept="image/*" capture="environment" onchange="loadImg('d','front',this)">
+          <span class="cam-icon">📷</span>
+          <div class="cam-label">صورة الأمام</div><div class="cam-sub">Front View</div>
+        </div>
+        <div class="cam-zone" id="d_backZone">
+          <input type="file" accept="image/*" capture="environment" onchange="loadImg('d','back',this)">
+          <span class="cam-icon">📷</span>
+          <div class="cam-label">صورة الخلف</div><div class="cam-sub">Back View</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature of SENDER -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> توقيع المُسلِّم</div>
+    <div class="card-body">
+      <div class="sig-wrap"><canvas id="d_sigCanvas" width="720" height="130" style="width:100%;height:130px;"></canvas></div>
+      <div class="sig-actions">
+        <button class="sig-clear" onclick="clearSig('d')">✕ مسح</button>
+        <span style="font-size:11px;color:var(--gray);align-self:center">وقّع بإصبعك أو الماوس</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="submitDeliver()">💾 حفظ وتسجيل التسليم</button>
+    <button class="btn btn-pdf" onclick="previewCert('deliver')">📄 معاينة الوثيقة</button>
+  </div>
+</div>
+
+<!-- ══ PAGE: RECEIVE ══ -->
+<div class="page" id="page-receive">
+  <div class="status-banner receive">
+    <div class="s-icon">📥</div>
+    <div><div class="s-title">وضع الاستلام</div><div class="s-sub">بيانات العهدة مقفّلة — أدخل بياناتك فقط كمستلِم</div></div>
+  </div>
+
+  <!-- Frozen handover info -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> بيانات العهدة الأصلية 🔒</div>
+    <div class="card-body">
+      <div class="frozen-notice">🔒 هذه البيانات مقفّلة ولا يمكن تعديلها — مصدرها سجل التسليم</div>
+      <div class="form-row">
+        <div class="field"><label>رقم الوثيقة</label><input type="text" id="r_certId" class="locked" readonly></div>
+        <div class="field"><label>الموقع</label><input type="text" id="r_location" class="locked" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>تاريخ التسليم</label><input type="text" id="r_deliverDate" class="locked" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>نوع الجهاز</label><input type="text" id="r_deviceType" class="locked" readonly></div>
+        <div class="field"><label>الرقم التسلسلي</label><input type="text" id="r_serial" class="locked" readonly></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>الموظف المُسلَّم له</label><input type="text" id="r_empName" class="locked" readonly></div>
+        <div class="field"><label>الرقم الوظيفي</label><input type="text" id="r_empId" class="locked" readonly></div>
+      </div>
+      <div class="form-row full">
+        <div class="field"><label>ملاحظات التسليم</label><textarea id="r_notes" class="locked" readonly style="min-height:50px"></textarea></div>
+      </div>
+      <!-- Existing photos from Drive -->
+      <div id="r_existingPhotos"></div>
+    </div>
+  </div>
+
+  <!-- Receiver info -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> بيانات المُستلِم</div>
+    <div class="card-body">
+      <div class="form-row">
+        <div class="field">
+          <label>الرقم الوظيفي للمُستلِم</label>
+          <div class="lookup-wrap">
+            <input type="text" id="r_receiverEmpId" placeholder="أدخل رقمك الوظيفي..." oninput="lookupEmp('r',this.value)">
+            <span class="lookup-badge" id="r_empBadge">✓ تم</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>اسم المُستلِم</label>
+          <input type="text" id="r_receiverEmpName" readonly placeholder="يظهر تلقائياً...">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="field">
+          <label>ملاحظات المستلم (اختياري)</label>
+          <textarea id="r_receiverNotes" placeholder="أي ملاحظات عند الاستلام..."></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature of RECEIVER -->
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> توقيع المُستلِم</div>
+    <div class="card-body">
+      <div class="sig-wrap"><canvas id="r_sigCanvas" width="720" height="130" style="width:100%;height:130px;"></canvas></div>
+      <div class="sig-actions">
+        <button class="sig-clear" onclick="clearSig('r')">✕ مسح</button>
+        <span style="font-size:11px;color:var(--gray);align-self:center">وقّع بإصبعك أو الماوس</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="submitReceive()">✅ تأكيد الاستلام</button>
+    <button class="btn btn-pdf" onclick="previewCert('receive')">📄 معاينة الوثيقة</button>
+  </div>
+</div>
+
+<!-- ══ PAGE: SEARCH ══ -->
+<div class="page" id="page-search">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><div class="dot"></div> بحث عن موظف</div>
+    <div class="card-body">
+      <div class="search-input-wrap">
+        <span class="si-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="أدخل الرقم الوظيفي أو اسم الموظف..." oninput="doSearch(this.value)">
+      </div>
+    </div>
+  </div>
+  <div id="searchResults"></div>
+</div>
+
+<!-- ══ PAGE: SETUP ══ -->
+<div class="page" id="page-setup">
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> إعدادات الاتصال</div>
+    <div class="card-body">
+      <div class="field" style="margin-bottom:14px">
+        <label>رابط Web App (Apps Script)</label>
+        <input type="text" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/..." style="font-size:12px">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" style="max-width:160px;padding:10px" onclick="saveUrl()">💾 حفظ</button>
+        <button class="btn btn-pdf" style="max-width:160px;padding:10px" onclick="testConnection()">🔌 اختبار الاتصال</button>
+      </div>
+      <div style="margin-top:10px" id="connStatus"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="dot"></div> كود Apps Script</div>
+    <div class="card-body">
+      <div class="setup-step">
+        <b>1.</b> افتح Google Sheets → أنشئ ملف جديد<br>
+        <b>2.</b> من القائمة: <b>Extensions → Apps Script</b><br>
+        <b>3.</b> احذف الكود الموجود والصق الكود أدناه<br>
+        <b>4.</b> اضغط <b>Deploy → New Deployment → Web App</b><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;• Execute as: <b>Me</b> | Who has access: <b>Anyone</b><br>
+        <b>5.</b> انسخ الرابط وضعه أعلاه ثم اضغط <b>اختبار الاتصال</b><br><br>
+        <b>📋 شيت "الموظفون":</b> العمود A = الرقم الوظيفي | العمود B = الاسم<br>
+        <b>📋 شيت "أنواع_العهد":</b> العمود A = اسم النوع (رأس + أسماء الأنواع)<br>
+        <b>📋 شيت "العهد":</b> يُنشأ تلقائياً عند الاختبار
+      </div>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode()">📋 نسخ</button>
+        <pre id="codeBlock">
+// ════════════════════════════════════════
+// نظام تسليم واستلام الأجهزة — Apps Script
+// ════════════════════════════════════════
+const HANDOVER_SHEET = 'العهد';
+const EMP_SHEET      = 'الموظفون';
+const DRIVE_FOLDER   = 'عهد_الأجهزة_صور';
+const COLS = [
+  'رقم_الوثيقة','التاريخ','الوقت','الموقع',
+  'نوع_الجهاز','الرقم_التسلسلي',
+  'رقم_موظف_المسلم_له','اسم_موظف_المسلم_له',
+  'ملاحظات_التسليم','الحالة',
+  'تاريخ_الاستلام','رقم_موظف_المستلم','اسم_موظف_المستلم','ملاحظات_الاستلام',
+  'صورة_الأمام','صورة_الخلف'
+];
+
+function doGet(e)  { return handle(e); }
+function doPost(e) { return handle(e); }
+
+function handle(e) {
+  const p = e.parameter || {};
+  const b = e.postData ? JSON.parse(e.postData.contents) : {};
+  const action = p.action || b.action;
+  try {
+    if (action === 'init')        return initSheet();
+    if (action === 'getAll')      return getAll();
+    if (action === 'add')         return addRecord(b);
+    if (action === 'receive')     return markReceived(b);
+    if (action === 'getEmployee') return getEmployee(p.id);
+    if (action === 'getDeviceTypes') return getDeviceTypes();
+    if (action === 'uploadPhoto') return uploadPhoto(b);
+    return out({error: 'unknown action'});
+  } catch(err) {
+    return out({error: err.message});
+  }
+}
+
+function initSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sh = ss.getSheetByName(HANDOVER_SHEET);
+  if (!sh) sh = ss.insertSheet(HANDOVER_SHEET);
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(COLS);
+    sh.getRange(1,1,1,COLS.length)
+      .setBackground('#0B1D3A').setFontColor('#FFFFFF')
+      .setFontWeight('bold').setHorizontalAlignment('center');
+    sh.setFrozenRows(1);
+    [1,2,3,10].forEach(c => sh.setColumnWidth(c, 150));
+  }
+  return out({success: true});
+}
+
+function getAll() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
+  if (!sh || sh.getLastRow() < 2) return out({data: []});
+  const rows = sh.getDataRange().getValues();
+  const headers = rows[0];
+  const data = rows.slice(1).map((r,i) => {
+    const obj = {}; headers.forEach((h,j) => obj[h] = r[j]);
+    obj._row = i + 2; return obj;
+  });
+  return out({data});
+}
+
+function addRecord(d) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
+  if (!sh) return out({error: 'Sheet not found'});
+  sh.appendRow([
+    d['رقم_الوثيقة'], d['التاريخ'], d['الوقت'], d['الموقع'],
+    d['نوع_الجهاز'], d['الرقم_التسلسلي']||'',
+    d['رقم_موظف_المسلم_له'], d['اسم_موظف_المسلم_له'],
+    d['ملاحظات_التسليم']||'', 'معلقة',
+    '', '', '', '', '', ''
+  ]);
+  return out({success: true});
+}
+
+function markReceived(d) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
+  const rows = sh.getDataRange().getValues();
+  const headers = rows[0];
+  const idx = r => headers.indexOf(r) + 1;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(d['رقم_الوثيقة'])) {
+      const now = new Date().toLocaleString('ar-SA');
+      sh.getRange(i+1, idx('الحالة')).setValue('مُستلمة');
+      sh.getRange(i+1, idx('تاريخ_الاستلام')).setValue(d['تاريخ_الاستلام']||now);
+      sh.getRange(i+1, idx('رقم_موظف_المستلم')).setValue(d['رقم_موظف_المستلم']||'');
+      sh.getRange(i+1, idx('اسم_موظف_المستلم')).setValue(d['اسم_موظف_المستلم']||'');
+      sh.getRange(i+1, idx('ملاحظات_الاستلام')).setValue(d['ملاحظات_الاستلام']||'');
+      return out({success: true});
+    }
+  }
+  return out({error: 'record not found'});
+}
+
+function getEmployee(id) {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(EMP_SHEET);
+  if (!sh) return out({name: null});
+  const rows = sh.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === String(id).trim())
+      return out({name: String(rows[i][1])});
+  }
+  return out({name: null});
+}
+
+function getDeviceTypes() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('أنواع_العهد');
+  if (!sh || sh.getLastRow() < 2) return out({types: []});
+  const rows = sh.getDataRange().getValues();
+  // First column, skip header row
+  const types = rows.slice(1).map(r => String(r[0]).trim()).filter(Boolean);
+  return out({types});
+}
+
+function uploadPhoto(d) {
+  // d: { docId, side, base64, mimeType }
+  let folder;
+  const folders = DriveApp.getFoldersByName(DRIVE_FOLDER);
+  folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(DRIVE_FOLDER);
+
+  const blob = Utilities.newBlob(
+    Utilities.base64Decode(d.base64),
+    d.mimeType || 'image/jpeg',
+    `${d.docId}_${d.side}.jpg`
+  );
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  const url = 'https://drive.google.com/thumbnail?id=' + file.getId() + '&sz=w800';
+
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
+  const rows = sh.getDataRange().getValues();
+  const headers = rows[0];
+  const col = headers.indexOf(d.side === 'front' ? 'صورة_الأمام' : 'صورة_الخلف') + 1;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]) === String(d.docId)) {
+      sh.getRange(i+1, col).setValue(url);
+      return out({success: true, url});
+    }
+  }
+  return out({error: 'record not found'});
+}
+
+function out(data) {
+  return ContentService
+    .createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+        </pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- PDF Modal -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('overlay').classList.remove('show')">✕</button>
+    <div id="certContent"></div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-pdf" onclick="downloadPDF()">📄 تحميل PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Lightbox -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('show')">
+  <button class="lightbox-close">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+// ══════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════
+const GATES = [
+  {id:'gate1',    name:'بوابة 1',     icon:'💂'},
+  {id:'gate2',    name:'بوابة 2',     icon:'💂'},
+  {id:'gate3',    name:'بوابة 3',     icon:'💂'},
+  {id:'gate5',    name:'بوابة 5',     icon:'💂'},
+  {id:'gate6',    name:'بوابة 6',     icon:'💂'},
+  {id:'visitors', name:'مبنى الزوار',icon:'🏢'},
+];
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let sheetUrl     = '';
+let allRecords   = [];
+let selectedGate = null;   // gates page
+let deliverGate  = null;   // deliver form
+let deliverImgs  = {front:null, back:null};
+let currentCertId= null;
+let currentMode  = 'deliver';  // for PDF
+let refreshTimer = null;
+
+// Signature contexts
+const sigs = {};
+
+// ══════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════
+(function init(){
+  document.getElementById('headerDate').textContent =
+    new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  sheetUrl = localStorage.getItem('sheetUrl')||'';
+  if(sheetUrl) document.getElementById('sheetUrlInput').value = sheetUrl;
+
+  renderGates('gatesGrid', false);
+  renderGates('deliverGatesGrid', true);
+  initSig('d');
+  initSig('r');
+
+  if(!sheetUrl){
+    document.getElementById('noConfigBanner').style.display='block';
+  } else {
+    refreshData();
+    loadDeviceTypes();
+    startAutoRefresh();
+  }
+})();
+
+// ══════════════════════════════════════
+// SIGNATURE
+// ══════════════════════════════════════
+function initSig(prefix){
+  const canvas = document.getElementById(prefix+'_sigCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle='#0B1D3A'; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+  sigs[prefix] = {canvas, ctx, drawing:false, lastPos:null};
+  function pos(e){
+    const r=canvas.getBoundingClientRect(), sx=canvas.width/r.width, sy=canvas.height/r.height;
+    const s=e.touches?e.touches[0]:e;
+    return {x:(s.clientX-r.left)*sx, y:(s.clientY-r.top)*sy};
+  }
+  canvas.addEventListener('mousedown',  e=>{sigs[prefix].drawing=true;sigs[prefix].lastPos=pos(e);});
+  canvas.addEventListener('mousemove',  e=>{if(!sigs[prefix].drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(sigs[prefix].lastPos.x,sigs[prefix].lastPos.y);ctx.lineTo(p.x,p.y);ctx.stroke();sigs[prefix].lastPos=p;});
+  canvas.addEventListener('mouseup',    ()=>sigs[prefix].drawing=false);
+  canvas.addEventListener('mouseleave', ()=>sigs[prefix].drawing=false);
+  canvas.addEventListener('touchstart', e=>{e.preventDefault();sigs[prefix].drawing=true;sigs[prefix].lastPos=pos(e);},{passive:false});
+  canvas.addEventListener('touchmove',  e=>{e.preventDefault();if(!sigs[prefix].drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(sigs[prefix].lastPos.x,sigs[prefix].lastPos.y);ctx.lineTo(p.x,p.y);ctx.stroke();sigs[prefix].lastPos=p;},{passive:false});
+  canvas.addEventListener('touchend',   ()=>sigs[prefix].drawing=false);
+}
+function clearSig(p){sigs[p].ctx.clearRect(0,0,sigs[p].canvas.width,sigs[p].canvas.height);}
+function isBlankSig(p){const d=sigs[p].ctx.getImageData(0,0,sigs[p].canvas.width,sigs[p].canvas.height).data;for(let i=3;i<d.length;i+=4)if(d[i]>10)return false;return true;}
+
+// ══════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const tab = document.getElementById('tab-'+name);
+  if(tab) tab.classList.add('active');
+  if(name==='search') doSearch(document.getElementById('searchInput').value);
+}
+
+function startDeliver(){
+  currentCertId = null;
+  deliverImgs = {front:null,back:null};
+  clearSig('d');
+  // reset front/back zones
+  ['front','back'].forEach(side=>{
+    const z=document.getElementById('d_'+side+'Zone');
+    if(z){
+      z.innerHTML=`<span class="cam-icon">📷</span>
+        <div class="cam-label">${side==='front'?'صورة الأمام':'صورة الخلف'}</div>
+        <div class="cam-sub">${side==='front'?'Front View':'Back View'}</div>
+        <input type="file" accept="image/*" capture="environment" onchange="loadImg('d','${side}',this)">`;
+      z.classList.remove('has-img');
+    }
+  });
+  ['d_deviceType','d_serial','d_empId','d_empName','d_notes'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';}
+  });
+  document.getElementById('d_empBadge').style.display='none';
+  document.querySelectorAll('#deliverGatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
+  deliverGate=null;
+  if(selectedGate){
+    deliverGate=selectedGate;
+    const el=document.getElementById('deliverGatesGrid_'+selectedGate);
+    if(el) el.classList.add('active');
+  }
+  showPage('deliver');
+}
+
+function showGatesForReceive(){
+  // Navigate to gates page so user can pick a gate and see pending items
+  showPage('gates');
+  // Highlight tab as receive intent
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-receive').classList.add('active');
+  showToast('📥 اختر البوابة لعرض العهد المعلقة');
+}
+
+// ══════════════════════════════════════
+// GATES
+// ══════════════════════════════════════
+function renderGates(cid, isForm){
+  const c = document.getElementById(cid);
+  c.innerHTML = GATES.map(g=>`
+    <div class="gate-btn" id="${cid}_${g.id}" onclick="${isForm?'selectDeliverGate':'selectGate'}('${g.id}')">
+      <div class="g-icon">${g.icon}</div>
+      <div class="g-name">${g.name}</div>
+      <div class="g-count none" id="${cid}_cnt_${g.id}">—</div>
+    </div>`).join('');
+}
+
+function updateCounts(){
+  GATES.forEach(g=>{
+    const n = allRecords.filter(r=>String(r['الموقع'])===g.name&&String(r['الحالة'])==='معلقة').length;
+    ['gatesGrid','deliverGatesGrid'].forEach(cid=>{
+      const el=document.getElementById(`${cid}_cnt_${g.id}`);if(!el)return;
+      el.textContent=n?`${n} معلقة`:'لا يوجد';
+      el.className='g-count '+(n?'has':'none');
+    });
+  });
+  const pend=allRecords.filter(r=>String(r['الحالة'])==='معلقة').length;
+  const done=allRecords.filter(r=>String(r['الحالة'])==='مُستلمة').length;
+  document.getElementById('statPending').textContent=pend;
+  document.getElementById('statDone').textContent=done;
+  document.getElementById('statTotal').textContent=allRecords.length;
+}
+
+function selectGate(gid){
+  selectedGate=gid;
+  document.querySelectorAll('#gatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('gatesGrid_'+gid).classList.add('active');
+  document.getElementById('pendingPanel').style.display='block';
+  refreshGatePanel();
+}
+
+function refreshGatePanel(){
+  if(!selectedGate)return;
+  const gate=GATES.find(g=>g.id===selectedGate);
+  document.getElementById('pendingTitle').textContent='العهد — '+gate.name;
+  const recs=allRecords.filter(r=>String(r['الموقع'])===gate.name&&String(r['الحالة'])==='معلقة');
+  renderPendingTable(recs);
+}
+
+function renderPendingTable(recs){
+  const w=document.getElementById('pendingTableWrap');
+  if(!recs.length){
+    w.innerHTML=`<div class="empty-state"><div class="e-icon">✅</div><p>لا توجد عهد معلقة في هذا الموقع</p></div>`;
+    return;
+  }
+  w.innerHTML=`<table class="pending-table"><thead><tr>
+    <th>رقم الوثيقة</th><th>الجهاز</th><th>المُسلَّم له</th><th>التاريخ</th><th>الحالة</th><th>استلام</th>
+  </tr></thead><tbody>
+  ${recs.map(r=>`<tr>
+    <td style="font-weight:700;color:var(--gold);font-size:11px">${r['رقم_الوثيقة']||'—'}</td>
+    <td>${r['نوع_الجهاز']||'—'}</td>
+    <td>${r['اسم_موظف_المسلم_له']||'—'}<br><span style="font-size:10px;color:var(--gray)">${r['رقم_موظف_المسلم_له']||''}</span></td>
+    <td style="font-size:11px;color:var(--gray)">${r['التاريخ']||'—'}</td>
+    <td><span class="badge-p">⏳ معلقة</span></td>
+    <td><button class="btn-rcv" onclick="openReceiveForm('${r['رقم_الوثيقة']}')">استلام</button></td>
+  </tr>`).join('')}
+  </tbody></table>`;
+}
+
+function selectDeliverGate(gid){
+  deliverGate=gid;
+  document.querySelectorAll('#deliverGatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('deliverGatesGrid_'+gid);if(el)el.classList.add('active');
+}
+
+// ══════════════════════════════════════
+// RECEIVE FORM — load frozen data
+// ══════════════════════════════════════
+function openReceiveForm(docId){
+  const r = allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
+  if(!r){showToast('❌ لم يُعثر على السجل','error');return;}
+
+  // Fill locked fields
+  document.getElementById('r_certId').value      = r['رقم_الوثيقة']||'';
+  document.getElementById('r_location').value    = r['الموقع']||'';
+  document.getElementById('r_deliverDate').value  = (r['التاريخ']||'')+' '+(r['الوقت']||'');
+  document.getElementById('r_deviceType').value   = r['نوع_الجهاز']||'';
+  document.getElementById('r_serial').value       = r['الرقم_التسلسلي']||'';
+  document.getElementById('r_empName').value      = r['اسم_موظف_المسلم_له']||'';
+  document.getElementById('r_empId').value        = r['رقم_موظف_المسلم_له']||'';
+  document.getElementById('r_notes').value        = r['ملاحظات_التسليم']||'';
+
+  // Clear receiver fields
+  document.getElementById('r_receiverEmpId').value  = '';
+  document.getElementById('r_receiverEmpName').value= '';
+  document.getElementById('r_receiverNotes').value  = '';
+  document.getElementById('r_empBadge').style.display='none';
+  clearSig('r');
+
+  // Show existing Drive photos
+  const fp = r['صورة_الأمام']||'';
+  const bp = r['صورة_الخلف']||'';
+  const ph = document.getElementById('r_existingPhotos');
+  if(fp||bp){
+    const toThumb = url => {
+      // Convert Drive view URL to thumbnail URL that works without CORS
+      const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if(m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`;
+      // already a thumbnail or other URL, return as-is
+      return url;
+    };
+    const fpT = fp ? toThumb(fp) : '';
+    const bpT = bp ? toThumb(bp) : '';
+    ph.innerHTML=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px">📷 صور الجهاز المُسجَّلة</div>
+      <div class="drive-photos">
+        ${fpT?`<div class="drive-photo" onclick="openLightbox('${fpT}')">
+          <img src="${fpT}" class="loading" onload="this.classList.remove('loading')"
+            onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر تحميل صورة الأمام</div>'">
+          <div class="dp-lbl">الأمام</div></div>`:''}
+        ${bpT?`<div class="drive-photo" onclick="openLightbox('${bpT}')">
+          <img src="${bpT}" class="loading" onload="this.classList.remove('loading')"
+            onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر تحميل صورة الخلف</div>'">
+          <div class="dp-lbl">الخلف</div></div>`:''}
+      </div>`;
+  } else { ph.innerHTML=''; }
+
+  currentCertId = docId;
+  showPage('receive');
+  showToast('📋 تم تحميل بيانات العهدة');
+}
+
+// ══════════════════════════════════════
+// EMPLOYEE LOOKUP
+// ══════════════════════════════════════
+const empTimers={};
+function lookupEmp(prefix, val){
+  const nameEl=document.getElementById(prefix==='d'?'d_empName':'r_receiverEmpName');
+  const badge =document.getElementById(prefix+'_empBadge');
+  nameEl.value=''; badge.style.display='none';
+  clearTimeout(empTimers[prefix]);
+  if(!val||val.length<2)return;
+  empTimers[prefix]=setTimeout(async()=>{
+    // check local records first
+    const found=allRecords.find(r=>String(r['رقم_موظف_المسلم_له']).trim()===val.trim()||String(r['رقم_موظف_المستلم']||'').trim()===val.trim());
+    const name = found?(found['اسم_موظف_المسلم_له']||found['اسم_موظف_المستلم']||null):null;
+    if(name){nameEl.value=name;badge.style.display='inline-block';return;}
+    if(!sheetUrl)return;
+    try{
+      const d=await apiGet('getEmployee&id='+encodeURIComponent(val));
+      if(d.name){nameEl.value=d.name;badge.style.display='inline-block';}
+    }catch(_){}
+  },500);
+}
+
+// ══════════════════════════════════════
+// DEVICE TYPES FROM SHEET
+// ══════════════════════════════════════
+async function loadDeviceTypes(){
+  if(!sheetUrl)return;
+  try{
+    const d=await apiGet('getDeviceTypes');
+    const sel=document.getElementById('d_deviceType');
+    if(d.types&&d.types.length){
+      sel.innerHTML='<option value="">اختر نوع الجهاز</option>'+
+        d.types.map(t=>`<option>${t}</option>`).join('');
+    } else {
+      // fallback defaults if sheet has no types sheet
+      const defaults=['لابتوب / Laptop','جوال / Mobile Phone','تابلت / Tablet',
+        'طابعة / Printer','جهاز مكتبي / Desktop PC','شاشة / Monitor',
+        'راديو لاسلكي / Radio','جهاز أمني / Security Device','أخرى'];
+      sel.innerHTML='<option value="">اختر نوع الجهاز</option>'+
+        defaults.map(t=>`<option>${t}</option>`).join('');
+    }
+  }catch(_){
+    // fallback defaults on error
+    const defaults=['لابتوب / Laptop','جوال / Mobile Phone','تابلت / Tablet',
+      'طابعة / Printer','جهاز مكتبي / Desktop PC','شاشة / Monitor',
+      'راديو لاسلكي / Radio','جهاز أمني / Security Device','أخرى'];
+    document.getElementById('d_deviceType').innerHTML='<option value="">اختر نوع الجهاز</option>'+
+      defaults.map(t=>`<option>${t}</option>`).join('');
+  }
+}
+
+// ══════════════════════════════════════
+// IMAGES
+// ══════════════════════════════════════
+function loadImg(prefix, side, input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    deliverImgs[side]=e.target.result;
+    const z=document.getElementById('d_'+side+'Zone');
+    z.classList.add('has-img');
+    z.innerHTML=`<img class="preview" src="${e.target.result}" style="width:100%;max-height:110px;object-fit:cover;border-radius:8px;margin-bottom:4px">
+      <div class="cam-label">${side==='front'?'✅ صورة الأمام':'✅ صورة الخلف'}</div>
+      <div class="cam-sub">اضغط للتغيير</div>
+      <input type="file" accept="image/*" capture="environment" onchange="loadImg('d','${side}',this)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════
+// SUBMIT DELIVER
+// ══════════════════════════════════════
+async function submitDeliver(){
+  if(!sheetUrl){showToast('⚠️ أضف رابط Sheets في الإعدادات','error');return;}
+  if(!deliverGate){showToast('⚠️ اختر البوابة أولاً','error');return;}
+  const empId  =document.getElementById('d_empId').value.trim();
+  const empName=document.getElementById('d_empName').value.trim();
+  if(!empId){showToast('⚠️ أدخل الرقم الوظيفي للموظف المُسلَّم له','error');return;}
+  if(!empName){showToast('⚠️ اسم الموظف غير مكتمل — تحقق من الرقم الوظيفي','error');return;}
+  const devType=document.getElementById('d_deviceType').value;
+  if(!devType){showToast('⚠️ اختر نوع الجهاز','error');return;}
+  if(!deliverImgs.front){showToast('⚠️ أضف صورة الأمام للجهاز','error');return;}
+  if(!deliverImgs.back){showToast('⚠️ أضف صورة الخلف للجهاز','error');return;}
+  if(isBlankSig('d')){showToast('⚠️ يرجى التوقيع قبل الحفظ','error');return;}
+
+  const now=new Date();
+  const dStr=now.toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const tStr=now.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+  const gate=GATES.find(g=>g.id===deliverGate);
+  const certId=genId();
+
+  try{
+    showLoading('جاري حفظ التسليم...');
+    await apiPost({
+      action:'add',
+      'رقم_الوثيقة':certId,
+      'التاريخ':dStr, 'الوقت':tStr,
+      'الموقع':gate.name,
+      'نوع_الجهاز':devType,
+      'الرقم_التسلسلي':document.getElementById('d_serial').value||'',
+      'رقم_موظف_المسلم_له':empId,
+      'اسم_موظف_المسلم_له':empName||'—',
+      'ملاحظات_التسليم':document.getElementById('d_notes').value||'',
+    });
+
+    // Upload photos to Drive
+    const uploads=[];
+    if(deliverImgs.front) uploads.push(uploadPhoto(certId,'front',deliverImgs.front));
+    if(deliverImgs.back)  uploads.push(uploadPhoto(certId,'back', deliverImgs.back));
+    if(uploads.length){
+      showLoading('جاري رفع الصور إلى Drive...');
+      await Promise.allSettled(uploads);
+    }
+
+    currentCertId=certId; currentMode='deliver';
+    await silentRefresh();
+    showToast('✅ تم حفظ التسليم بنجاح','success');
+    previewCert('deliver');
+  }catch(e){showToast('❌ فشل الحفظ: '+e.message,'error');}
+  finally{hideLoading();}
+}
+
+async function uploadPhoto(docId, side, dataUrl){
+  // strip data:image/...;base64, prefix
+  const base64 = dataUrl.replace(/^data:[^;]+;base64,/,'');
+  const mimeType = dataUrl.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
+  return apiPost({action:'uploadPhoto', docId, side, base64, mimeType});
+}
+
+// ══════════════════════════════════════
+// SUBMIT RECEIVE
+// ══════════════════════════════════════
+async function submitReceive(){
+  if(!sheetUrl){showToast('⚠️ أضف رابط Sheets في الإعدادات','error');return;}
+  if(!currentCertId){showToast('⚠️ لم يتم تحديد العهدة','error');return;}
+  const rEmpId  =document.getElementById('r_receiverEmpId').value.trim();
+  const rEmpName=document.getElementById('r_receiverEmpName').value.trim();
+  if(!rEmpId){showToast('⚠️ أدخل رقمك الوظيفي كمستلِم','error');return;}
+  if(!rEmpName){showToast('⚠️ اسم المستلم غير مكتمل — تحقق من الرقم الوظيفي','error');return;}
+  if(isBlankSig('r')){showToast('⚠️ يرجى التوقيع قبل التأكيد','error');return;}
+
+  const now=new Date();
+  const dStr=now.toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const tStr=now.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+
+  try{
+    showLoading('جاري تسجيل الاستلام...');
+    await apiPost({
+      action:'receive',
+      'رقم_الوثيقة':currentCertId,
+      'تاريخ_الاستلام':dStr+' '+tStr,
+      'رقم_موظف_المستلم':rEmpId,
+      'اسم_موظف_المستلم':rEmpName||'—',
+      'ملاحظات_الاستلام':document.getElementById('r_receiverNotes').value||'',
+    });
+    await silentRefresh();
+    currentMode='receive';
+    showToast('✅ تم تسجيل الاستلام بنجاح','success');
+    previewCert('receive');
+  }catch(e){showToast('❌ فشل التسجيل: '+e.message,'error');}
+  finally{hideLoading();}
+}
+
+// ══════════════════════════════════════
+// SEARCH
+// ══════════════════════════════════════
+let searchTimer=null;
+function doSearch(val){
+  clearTimeout(searchTimer);
+  searchTimer=setTimeout(()=>_doSearch(val),300);
+}
+
+function _doSearch(val){
+  const q=(val||'').trim().toLowerCase();
+  const wrap=document.getElementById('searchResults');
+  if(!q){
+    wrap.innerHTML=`<div class="empty-state"><div class="e-icon">🔍</div><p>أدخل الرقم الوظيفي أو اسم الموظف للبحث</p></div>`;
+    return;
+  }
+
+  // Gather unique employees matching the query
+  const empMap={};
+  allRecords.forEach(r=>{
+    const id=String(r['رقم_موظف_المسلم_له']||'');
+    const nm=String(r['اسم_موظف_المسلم_له']||'');
+    if(!id)return;
+    if(id.toLowerCase().includes(q)||nm.toLowerCase().includes(q)){
+      if(!empMap[id]) empMap[id]={id, name:nm, records:[]};
+      empMap[id].records.push(r);
+    }
+  });
+
+  const emps=Object.values(empMap);
+  if(!emps.length){
+    wrap.innerHTML=`<div class="empty-state"><div class="e-icon">😕</div><p>لا توجد نتائج تطابق "<strong>${val}</strong>"</p></div>`;
+    return;
+  }
+
+  wrap.innerHTML=emps.map(emp=>{
+    const total=emp.records.length;
+    const pending=emp.records.filter(r=>String(r['الحالة'])==='معلقة').length;
+    const done=total-pending;
+
+    const recsHtml=emp.records.slice().reverse().map(r=>{
+      const isPend=String(r['الحالة'])==='معلقة';
+      const fp=r['صورة_الأمام']||'';
+      const bp=r['صورة_الخلف']||'';
+      const toThumb = url => {
+        const m = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        if(m) return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`;
+        return url;
+      };
+      const fpT = fp ? toThumb(fp) : '';
+      const bpT = bp ? toThumb(bp) : '';
+      const photos=(fpT||bpT)?`
+        <div class="drive-photos" style="margin-top:10px">
+          ${fpT?`<div class="drive-photo" onclick="openLightbox('${fpT}')"><img src="${fpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر</div>'"><div class="dp-lbl">الأمام</div></div>`:''}
+          ${bpT?`<div class="drive-photo" onclick="openLightbox('${bpT}')"><img src="${bpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر</div>'"><div class="dp-lbl">الخلف</div></div>`:''}
+        </div>`:'';
+      return `<div class="rec-card">
+        <div class="rec-card-top">
+          <div>
+            <span style="font-weight:700;color:var(--gold);font-size:12px">${r['رقم_الوثيقة']||'—'}</span>
+            <span style="margin-right:8px;font-size:11px;color:var(--gray)">${r['التاريخ']||''}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${isPend?'<span class="badge-p">⏳ معلقة</span>':'<span class="badge-d">✅ مُستلمة</span>'}
+            ${isPend?`<button class="btn-rcv" onclick="openReceiveForm('${r['رقم_الوثيقة']}')">استلام</button>`:''}
+          </div>
+        </div>
+        <div class="rec-card-body">
+          <div class="rec-grid">
+            <div class="rec-field"><div class="rf-lbl">الجهاز</div><div class="rf-val">${r['نوع_الجهاز']||'—'}</div></div>
+            <div class="rec-field"><div class="rf-lbl">الموقع</div><div class="rf-val">${r['الموقع']||'—'}</div></div>
+            ${r['الرقم_التسلسلي']?`<div class="rec-field"><div class="rf-lbl">Serial</div><div class="rf-val">${r['الرقم_التسلسلي']}</div></div>`:''}
+            ${r['ملاحظات_التسليم']?`<div class="rec-field"><div class="rf-lbl">ملاحظات التسليم</div><div class="rf-val">${r['ملاحظات_التسليم']}</div></div>`:''}
+            ${r['اسم_موظف_المستلم']?`<div class="rec-field"><div class="rf-lbl">المستلِم</div><div class="rf-val" style="color:var(--green)">${r['اسم_موظف_المستلم']}</div></div>`:''}
+            ${r['تاريخ_الاستلام']?`<div class="rec-field"><div class="rf-lbl">تاريخ الاستلام</div><div class="rf-val" style="color:var(--green)">${r['تاريخ_الاستلام']}</div></div>`:''}
+            ${r['ملاحظات_الاستلام']?`<div class="rec-field"><div class="rf-lbl">ملاحظات الاستلام</div><div class="rf-val">${r['ملاحظات_الاستلام']}</div></div>`:''}
+          </div>
+          ${photos}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="emp-profile">
+      <div class="ep-name">${emp.name||'—'}</div>
+      <div class="ep-id">الرقم الوظيفي: ${emp.id}</div>
+      <div class="ep-stats">
+        <div class="ep-stat teal"><div class="epn">${total}</div><div class="epl">إجمالي العهد</div></div>
+        <div class="ep-stat orange"><div class="epn">${pending}</div><div class="epl">معلقة</div></div>
+        <div class="ep-stat green"><div class="epn">${done}</div><div class="epl">مُستلمة</div></div>
+      </div>
+    </div>
+    ${recsHtml}`;
+  }).join('<div style="height:20px"></div>');
+}
+
+// ══════════════════════════════════════
+// LIGHTBOX
+// ══════════════════════════════════════
+function openLightbox(url){
+  document.getElementById('lightboxImg').src=url;
+  document.getElementById('lightbox').classList.add('show');
+}
+document.getElementById('lightbox').addEventListener('click',()=>{
+  document.getElementById('lightbox').classList.remove('show');
+  document.getElementById('lightboxImg').src='';
+});
+
+// ══════════════════════════════════════
+// PDF / CERT
+// ══════════════════════════════════════
+function previewCert(mode){
+  currentMode=mode;
+  document.getElementById('certContent').innerHTML=buildCert(mode);
+  document.getElementById('overlay').classList.add('show');
+}
+
+function buildCert(mode){
+  const isD=mode==='deliver';
+  const certId=currentCertId||'—';
+  const now=new Date();
+  const dStr=now.toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const tStr=now.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+
+  let devType,empName,empId,gate,notes,serial,sigCanvas,sigPrefix;
+  if(isD){
+    devType=document.getElementById('d_deviceType').value||'—';
+    serial =document.getElementById('d_serial').value||'';
+    empId  =document.getElementById('d_empId').value||'—';
+    empName=document.getElementById('d_empName').value||'—';
+    notes  =document.getElementById('d_notes').value||'';
+    gate   =deliverGate?GATES.find(g=>g.id===deliverGate)?.name||'—':'—';
+    sigPrefix='d';
+  } else {
+    devType=document.getElementById('r_deviceType').value||'—';
+    serial =document.getElementById('r_serial').value||'';
+    empId  =document.getElementById('r_empId').value||'—';
+    empName=document.getElementById('r_empName').value||'—';
+    notes  =document.getElementById('r_notes').value||'';
+    gate   =document.getElementById('r_location').value||'—';
+    sigPrefix='r';
+  }
+
+  const hasSig=!isBlankSig(sigPrefix);
+  const sigImg=sigs[sigPrefix].canvas.toDataURL();
+
+  const photos=(deliverImgs.front||deliverImgs.back)?`
+    <div class="cert-section"><h3>صور الجهاز</h3><div class="cert-photos">
+      ${deliverImgs.front?`<div class="ph-wrap"><img src="${deliverImgs.front}"><div class="ph-label">الأمام</div></div>`:''}
+      ${deliverImgs.back ?`<div class="ph-wrap"><img src="${deliverImgs.back}"><div class="ph-label">الخلف</div></div>`:''}
+    </div></div>`:'';
+
+  const confirmMsg=isD
+    ?`تم تسليم الجهاز المذكور أعلاه في ${gate} بحالة سليمة. يُقرّ المستلِم باستلامه وفق ما هو مذكور في هذه الوثيقة.`
+    :`تم استلام الجهاز رسمياً. يُقرّ المستلِم بأنه تسلّم الجهاز ويتحمل المسؤولية الكاملة عنه من تاريخ هذه الوثيقة.`;
+
+  const checks=isD
+    ?['لا توجد خدوش ظاهرة','لا يوجد كسر أو شرخ','الشاشة سليمة','الجهاز يعمل طبيعياً','الملحقات مكتملة']
+    :['تم التسليم الرسمي','الجهاز مُستلم','المسؤولية محوّلة','تم التوثيق','السجل مُحدَّث'];
+
+  const receiverSection=!isD?`
+    <div class="cert-section"><h3>بيانات المُستلِم</h3><div class="cert-grid">
+      <div class="cert-field"><div class="cf-label">الرقم الوظيفي</div><div class="cf-val">${document.getElementById('r_receiverEmpId').value||'—'}</div></div>
+      <div class="cert-field"><div class="cf-label">الاسم</div><div class="cf-val">${document.getElementById('r_receiverEmpName').value||'—'}</div></div>
+    </div></div>`:'';
+
+  return `<div style="direction:rtl;font-family:'IBM Plex Sans Arabic',sans-serif">
+    <div class="cert-header">
+      <div class="cert-logo-area">
+        <div class="cert-logo-box">🔐</div>
+        <div><div class="cert-title">نظام تسليم واستلام الأجهزة</div><div class="cert-subtitle">Device Handover Management System</div></div>
+      </div>
+      <span class="cert-type-badge ${mode}">${isD?'📤 وثيقة تسليم':'📥 وثيقة استلام'}</span>
+    </div>
+    <div class="cert-section"><h3>معلومات الوثيقة</h3><div class="cert-grid">
+      <div class="cert-field"><div class="cf-label">رقم الوثيقة</div><div class="cf-val cert-id">${certId}</div></div>
+      <div class="cert-field"><div class="cf-label">الموقع</div><div class="cf-val">${gate}</div></div>
+      <div class="cert-field"><div class="cf-label">التاريخ</div><div class="cf-val">${dStr}</div></div>
+      <div class="cert-field"><div class="cf-label">الوقت</div><div class="cf-val">${tStr}</div></div>
+    </div></div>
+    <div class="cert-section"><h3>بيانات الجهاز والموظف</h3><div class="cert-grid">
+      <div class="cert-field"><div class="cf-label">نوع الجهاز</div><div class="cf-val">${devType}</div></div>
+      ${serial?`<div class="cert-field"><div class="cf-label">الرقم التسلسلي</div><div class="cf-val">${serial}</div></div>`:''}
+      <div class="cert-field"><div class="cf-label">الرقم الوظيفي</div><div class="cf-val">${empId}</div></div>
+      <div class="cert-field" style="grid-column:span 2"><div class="cf-label">اسم الموظف</div><div class="cf-val">${empName}</div></div>
+    </div></div>
+    ${receiverSection}
+    <div class="cert-confirm-box ${mode}"><p><strong>${isD?'✅ إقرار التسليم:':'✅ إقرار الاستلام:'}</strong> ${confirmMsg}</p></div>
+    <div class="cert-section"><h3>حالة الجهاز</h3><div class="checklist">
+      ${checks.map(i=>`<div class="check-item"><div class="chk">✓</div>${i}</div>`).join('')}
+    </div></div>
+    ${notes?`<div class="cert-section"><h3>ملاحظات</h3><div class="cert-field" style="margin:0"><div class="cf-val">${notes}</div></div></div>`:''}
+    ${photos}
+    <div class="cert-sig">
+      ${hasSig?`<img src="${sigImg}" alt="توقيع">`:'<div style="height:50px"></div>'}
+      <div class="sig-line"></div>
+      <p>${isD?'توقيع المُسلِّم':'توقيع المُستلِم'}</p>
+      <p style="margin-top:2px;font-weight:600">${isD?empName:document.getElementById('r_receiverEmpName').value||empName}</p>
+    </div>
+    <div class="cert-footer">
+      <p>وثيقة رسمية — نظام تسليم واستلام الأجهزة</p>
+      <p>Doc ID: <span class="cert-id">${certId}</span> | ${dStr} — ${tStr}</p>
+    </div>
+  </div>`;
+}
+
+async function downloadPDF(){
+  const {jsPDF}=window.jspdf;
+  const tmp=document.createElement('div');
+  tmp.style.cssText='position:fixed;left:-9999px;top:0;width:780px;padding:36px;background:#fff;direction:rtl;';
+  tmp.innerHTML=document.getElementById('certContent').innerHTML;
+  document.body.appendChild(tmp);
+  if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  showLoading('جاري إنشاء PDF...');
+  try{
+    const c=await html2canvas(tmp,{scale:2,useCORS:true,backgroundColor:'#fff'});
+    document.body.removeChild(tmp);
+    const img=c.toDataURL('image/jpeg',.92);
+    const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+    const w=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+    const h=(c.height*w)/c.width;
+    let y=0; while(y<h){if(y>0)pdf.addPage();pdf.addImage(img,'JPEG',0,-y,w,h);y+=ph;}
+    pdf.save(`${currentMode==='deliver'?'تسليم':'استلام'}_${currentCertId||''}.pdf`);
+    showToast('✅ تم تحميل PDF','success');
+  }catch(e){showToast('❌ خطأ في PDF','error');}
+  finally{hideLoading();}
+}
+
+// ══════════════════════════════════════
+// DATA REFRESH
+// ══════════════════════════════════════
+function startAutoRefresh(){
+  clearInterval(refreshTimer);
+  refreshTimer=setInterval(()=>{if(sheetUrl)silentRefresh();},30000);
+}
+
+async function silentRefresh(){
+  try{
+    const d=await apiGet('getAll');
+    if(d.data){allRecords=d.data;updateCounts();if(selectedGate)refreshGatePanel();}
+  }catch(_){}
+}
+
+async function refreshData(){
+  if(!sheetUrl)return;
+  showLoading('جاري التحديث...');
+  try{
+    const d=await apiGet('getAll');
+    if(d.data){allRecords=d.data;updateCounts();if(selectedGate)refreshGatePanel();}
+    // load device types from sheet
+    await loadDeviceTypes();
+  }catch(e){showToast('❌ تعذر التحديث','error');}
+  finally{hideLoading();}
+}
+
+// ══════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════
+function saveUrl(){
+  sheetUrl=document.getElementById('sheetUrlInput').value.trim();
+  localStorage.setItem('sheetUrl',sheetUrl);
+  document.getElementById('noConfigBanner').style.display=sheetUrl?'none':'block';
+  showToast('✅ تم حفظ الرابط','success');
+  if(sheetUrl){refreshData();startAutoRefresh();}
+}
+
+async function testConnection(){
+  if(!sheetUrl){showToast('⚠️ أدخل الرابط أولاً','error');return;}
+  showLoading('جاري الاختبار...');
+  try{
+    const d=await apiGet('init');
+    const s=document.getElementById('connStatus');
+    if(d.success){
+      s.innerHTML=`<span style="color:var(--green);font-size:13px;font-weight:700">✅ الاتصال ناجح — تم إنشاء الأعمدة</span>`;
+      showToast('✅ جاهز!','success');
+      refreshData();
+    } else {
+      s.innerHTML=`<span style="color:var(--red);font-size:13px">❌ ${d.error||'فشل'}</span>`;
+    }
+  }catch(e){
+    document.getElementById('connStatus').innerHTML=`<span style="color:var(--red);font-size:13px">❌ تعذر الاتصال</span>`;
+  }finally{hideLoading();}
+}
+
+function copyCode(){
+  navigator.clipboard.writeText(document.getElementById('codeBlock').textContent.trim());
+  showToast('📋 تم نسخ الكود','success');
+}
+
+// ══════════════════════════════════════
+// API
+// ══════════════════════════════════════
+async function apiGet(action){
+  const r=await fetch(`${sheetUrl}?action=${action}&t=${Date.now()}`);
+  return r.json();
+}
+async function apiPost(body){
+  const r=await fetch(sheetUrl,{method:'POST',body:JSON.stringify(body)});
+  const d=await r.json();
+  if(d.error) throw new Error(d.error);
+  return d;
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function genId(){const n=new Date();return 'HD-'+n.getFullYear()+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0')+'-'+Math.floor(1000+Math.random()*9000);}
+function showLoading(m){document.getElementById('loadingMsg').textContent=m;document.getElementById('loadingOverlay').classList.add('show');}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show');}
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.className='toast show '+(type||'');
+  document.getElementById('toastMsg').textContent=msg;
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);
+}
+function loadScript(src){return new Promise((r,j)=>{const s=document.createElement('script');s.src=src;s.onload=r;s.onerror=j;document.head.appendChild(s);});}
+</script>
+</body>
+</html>

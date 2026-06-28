@@ -139,9 +139,9 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .btn-pdf:hover{transform:translateY(-1px)}
 
 /* ── OVERLAY / MODAL ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:center;justify-content:center;padding:14px}
+.overlay{position:fixed;inset:0;background:#f0f4f8;z-index:100;display:none;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .overlay.show{display:flex}
-.modal{background:var(--white);border-radius:18px;max-width:720px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4);padding:26px;position:relative}
+.modal{background:var(--white);border-radius:0;max-width:100%;width:100%;flex:1;position:relative;padding:0}
 .modal-close{position:absolute;top:14px;left:14px;background:var(--ice);border:none;border-radius:7px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--gray)}
 .modal-close:hover{background:#FFE5E5;color:var(--red)}
 
@@ -1020,13 +1020,14 @@ function openReceiveForm(docId){
   clearSig('r');
   const toThumb=url=>{const m=url.match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`:url;};
   const fp=r['صورة_الأمام']||'',bp=r['صورة_الخلف']||'';
+  deliverImgs={front:fp?toThumb(fp):null,back:bp?toThumb(bp):null};
   const ph=document.getElementById('r_existingPhotos');
   if(fp||bp){
-    const fpT=fp?toThumb(fp):'',bpT=bp?toThumb(bp):'';
+    const fpT=deliverImgs.front,bpT=deliverImgs.back;
     ph.innerHTML=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px">📷 صور الجهاز</div>
     <div class="drive-photos">
-      ${fpT?`<div class="drive-photo" onclick="openLightbox('${fpT}')"><img src="${fpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الأمام</div></div>`:''}
-      ${bpT?`<div class="drive-photo" onclick="openLightbox('${bpT}')"><img src="${bpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الخلف</div></div>`:''}
+      ${fpT?`<div class="drive-photo" onclick="openLightbox('${fpT}')"><img src="${fpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\'dp-err\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الأمام</div></div>`:''}
+      ${bpT?`<div class="drive-photo" onclick="openLightbox('${bpT}')"><img src="${bpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\'dp-err\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الخلف</div></div>`:''}
     </div>`;
   } else ph.innerHTML='';
   currentCertId=docId;
@@ -1378,44 +1379,53 @@ function previewCert(mode){
   document.getElementById('overlay').classList.add('show');
 }
 
-async function downloadPDF(){
-  const{jsPDF}=window.jspdf;
-  if(!window.html2canvas)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-  showLoading('جاري إنشاء PDF...');
-  try{
-    const certHTML=buildCertHTML(currentMode,true);
-    const iframe=document.createElement('iframe');
-    iframe.style.cssText='position:fixed;left:-9999px;top:0;width:800px;height:2px;border:none;opacity:0;pointer-events:none';
-    document.body.appendChild(iframe);
-    const iDoc=iframe.contentDocument||iframe.contentWindow.document;
-    iDoc.open();
-    iDoc.write(`<!DOCTYPE html>
+function downloadPDF(){
+  // بناء HTML كامل مع الصور مدمجة (base64)
+  const certHTML = buildCertHTML(currentMode, true);
+  const title = (currentMode==='deliver'?'وثيقة تسليم':'وثيقة استلام')+' — '+(currentCertId||'');
+  const fullHTML = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}html,body{direction:rtl;background:#fff;width:800px}body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;padding:14px}</style>
+<title>${title}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{direction:rtl;font-family:'IBM Plex Sans Arabic',Arial,sans-serif;background:#f0f4f8;min-height:100vh}
+.toolbar{position:fixed;bottom:0;left:0;right:0;background:#0B2A5A;padding:14px 18px;display:flex;gap:12px;align-items:center;justify-content:center;z-index:999;box-shadow:0 -4px 20px rgba(0,0,0,.4)}
+.toolbar button{padding:11px 30px;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+.btn-print{background:linear-gradient(135deg,#007AB8,#00AEEF);color:#fff}
+.btn-print:hover{opacity:.9}
+.btn-close{background:#fff;color:#C0392B;border:2.5px solid #C0392B}
+.cert-wrap{padding:20px 16px 100px;max-width:820px;margin:0 auto}
+@media print{
+  .toolbar{display:none!important}
+  .cert-wrap{padding:0;max-width:100%}
+  html,body{background:#fff}
+  @page{margin:6mm;size:A4 portrait}
+}
+</style>
 </head>
-<body dir="rtl">${certHTML}</body>
-</html>`);
-    iDoc.close();
-    await new Promise(r=>setTimeout(r,2000));
-    const body=iDoc.body;
-    iframe.style.height=(body.scrollHeight+40)+'px';
-    await new Promise(r=>setTimeout(r,400));
-    const canvas=await html2canvas(body,{scale:2,useCORS:true,backgroundColor:'#fff',allowTaint:true,scrollX:0,scrollY:0,width:800,windowWidth:800,logging:false,foreignObjectRendering:false});
-    document.body.removeChild(iframe);
-    const img=canvas.toDataURL('image/jpeg',.94);
-    const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
-    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
-    const ih=(canvas.height*pw)/canvas.width;
-    let y=0;
-    while(y<ih){if(y>0)pdf.addPage();pdf.addImage(img,'JPEG',0,-y,pw,ih);y+=ph;}
-    pdf.save(`${currentMode==='deliver'?'تسليم':'استلام'}_${currentCertId||''}.pdf`);
-    showToast('✅ تم تحميل PDF','success');
-  }catch(e){console.error(e);showToast('❌ خطأ: '+e.message,'error');}
-  finally{hideLoading();}
+<body dir="rtl">
+<div class="cert-wrap">${certHTML}</div>
+<div class="toolbar">
+  <button class="btn-close" onclick="window.close()">✕ إغلاق</button>
+  <button class="btn-print" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+</div>
+</body>
+</html>`;
+  // استخدام Blob URL لتفادي مشاكل document.write مع base64 الطويل
+  const blob = new Blob([fullHTML], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if(!win){
+    // إذا منعت المتصفح — فتح في نفس النافذة
+    const a = document.createElement('a');
+    a.href = url; a.target = '_blank'; a.click();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  showToast('✅ افتح الصفحة الجديدة واضغط طباعة','success');
 }
 
 // ═══════════════════════════════════════════════

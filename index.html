@@ -876,6 +876,57 @@ const sigs = {};
 // ═══════════════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════
+function showToast(msg, type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.style.display='flex';
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>{ t.style.display='none'; },3200);
+}
+function showLoading(msg='جاري التحميل...'){
+  document.getElementById('loadingMsg').textContent=msg;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('show'); }
+function genId(){
+  const n=new Date();
+  return 'HD-'+n.getFullYear().toString().slice(2)+
+    String(n.getMonth()+1).padStart(2,'0')+
+    String(n.getDate()).padStart(2,'0')+'-'+
+    Math.random().toString(36).slice(2,7).toUpperCase();
+}
+async function apiGet(action){
+  const res=await fetch(sheetUrl+'?action='+action,{method:'GET',mode:'cors'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+async function apiPost(data){
+  const res=await fetch(sheetUrl,{method:'POST',mode:'cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(data)});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+async function refreshData(){
+  if(!sheetUrl){document.getElementById('noConfigBanner').style.display='block';return;}
+  document.getElementById('noConfigBanner').style.display='none';
+  try{
+    const d=await apiGet('getAll');
+    if(d&&d.data){ allRecords=d.data; updateCounts(); if(selectedGate)refreshGatePanel(); }
+  }catch(e){ console.warn('refreshData error:',e); }
+  try{ await loadDeviceTypes(); }catch(_){}
+}
+async function silentRefresh(){
+  try{
+    const d=await apiGet('getAll');
+    if(d&&d.data){ allRecords=d.data; updateCounts(); if(selectedGate)refreshGatePanel(); }
+  }catch(_){}
+}
+function startAutoRefresh(){ setInterval(silentRefresh, 60000); }
+
+// ═══════════════════════════════════════════════
 (function init(){
   document.getElementById('headerDate').textContent =
     new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -1477,3 +1528,5 @@ html,body{direction:rtl;font-family:'IBM Plex Sans Arabic',Arial,sans-serif;back
   setTimeout(()=>URL.revokeObjectURL(url), 5000);
   showToast('✅ تم تنزيل الملف — افتحه واضغط طباعة','success');
 }
+
+

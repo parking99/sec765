@@ -15,16 +15,13 @@
 }
 body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--ice);min-height:100vh;color:var(--navy)}
 
-/* ── HEADER ── */
 header{background:linear-gradient(135deg,#071830,#0B2A5A 70%,#1565C0);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 3px 16px rgba(7,24,48,.5)}
 .logo{display:flex;align-items:center;gap:12px}
 .logo-sec{display:flex;align-items:center;justify-content:center;gap:3px;font-size:26px;font-weight:800;color:#fff;letter-spacing:-1px;font-family:sans-serif;line-height:1}
-.logo-sec .wave{color:var(--teal);font-size:20px}
 header h1{color:#fff;font-size:17px;font-weight:700}
 header p{color:#7ABCD8;font-size:10px;margin-top:1px}
 .badge-date{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:8px;padding:5px 12px;color:#9ECCE0;font-size:11px}
 
-/* ── NAV ── */
 .nav-tabs{display:flex;background:#071830;border-top:1px solid rgba(255,255,255,.07);padding:0 12px;overflow-x:auto}
 .nav-tab{padding:11px 14px;color:#5A82A0;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
 .nav-tab:hover{color:#fff}
@@ -32,12 +29,10 @@ header p{color:#7ABCD8;font-size:10px;margin-top:1px}
 
 main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 
-/* ── NO CONFIG ── */
 .no-config{background:#FFF8E1;border:2px solid var(--gold);border-radius:14px;padding:18px 22px;text-align:center;margin-bottom:18px}
 .no-config p{font-size:13px;color:#7A5800;font-weight:600}
 .no-config button{margin-top:9px;padding:7px 20px;background:var(--gold);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
 
-/* ── STATS ── */
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
 .stat-card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;box-shadow:0 2px 8px rgba(11,42,90,.05)}
 .stat-card .s-num{font-size:28px;font-weight:700}
@@ -46,22 +41,17 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .stat-card.green  .s-num{color:var(--green)}
 .stat-card.teal   .s-num{color:var(--blue)}
 
-/* ── GATES GRID ── */
 .section-title{font-size:11px;font-weight:700;color:var(--gray);margin-bottom:10px;letter-spacing:.5px}
 .gates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
 .gate-btn{background:var(--white);border:2px solid var(--border);border-radius:14px;padding:14px 8px 12px;text-align:center;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(11,42,90,.05);min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .gate-btn:hover{border-color:var(--teal);transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,174,239,.18)}
 .gate-btn.active{border-color:var(--blue);background:linear-gradient(160deg,#EBF4FC,#F0F8FF)}
-.gate-btn .g-num{font-size:28px;font-weight:800;color:var(--blue);line-height:1;font-family:'IBM Plex Sans Arabic',sans-serif;margin-bottom:2px}
 .gate-btn .g-name{font-size:11px;font-weight:700;color:var(--navy)}
 .gate-btn .g-count{font-size:10px;margin-top:5px;padding:2px 8px;border-radius:10px;display:inline-block;font-weight:600}
 .gate-btn .g-count.has{background:#FFF3E0;color:var(--orange)}
 .gate-btn .g-count.none{background:#F0F4F8;color:var(--gray)}
-
-/* SVG guard */
 .guard-wrap{width:44px;height:44px;margin:0 auto 4px}
 
-/* ── PANEL ── */
 .pending-panel{background:var(--white);border:1px solid var(--border);border-radius:16px;margin-bottom:18px;overflow:hidden;display:none;box-shadow:0 2px 10px rgba(11,42,90,.06)}
 .panel-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
 .panel-header h3{font-size:14px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:8px}
@@ -83,13 +73,11 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .empty-state .e-icon{font-size:36px;margin-bottom:8px}
 .empty-state p{font-size:13px}
 
-/* ── CARDS ── */
 .card{background:var(--white);border-radius:14px;border:1px solid var(--border);box-shadow:0 2px 10px rgba(11,42,90,.05);margin-bottom:14px;overflow:hidden}
 .card-header{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--navy)}
 .card-header .dot{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px rgba(0,174,239,.2)}
 .card-body{padding:18px 20px}
 
-/* ── FORM ── */
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .form-row.full{grid-template-columns:1fr}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--gray);margin-bottom:5px}
@@ -103,7 +91,6 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .lookup-badge{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;background:#EAF5F0;color:var(--green);padding:2px 8px;border-radius:8px;font-weight:700;display:none}
 .frozen-notice{background:#EDF4FA;border:1.5px solid var(--teal);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--blue);font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 
-/* ── CAMERAS ── */
 .cameras{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .cam-zone{border:2px dashed var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer;transition:all .2s;background:var(--ice);position:relative;min-height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .cam-zone:hover{border-color:var(--teal);background:#EBF7FC}
@@ -114,13 +101,11 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .cam-zone .cam-sub{font-size:10px;color:var(--gray);margin-top:1px}
 .cam-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
 
-/* ── SIGNATURE ── */
 .sig-wrap canvas{border:1.5px solid var(--border);border-radius:9px;background:#FAFCFF;cursor:crosshair;touch-action:none}
 .sig-actions{display:flex;gap:10px;margin-top:7px}
 .sig-clear{padding:5px 14px;border:1.5px solid var(--border);border-radius:7px;background:transparent;font-family:inherit;font-size:12px;cursor:pointer;color:var(--gray)}
 .sig-clear:hover{border-color:var(--red);color:var(--red)}
 
-/* ── STATUS BANNER ── */
 .status-banner{border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:14px;border:2px solid}
 .status-banner.deliver{background:#EBF4FC;border-color:var(--blue)}
 .status-banner.receive{background:#EAF5F0;border-color:var(--green)}
@@ -130,7 +115,6 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .status-banner.receive .s-title{color:var(--green)}
 .status-banner .s-sub{font-size:11px;color:var(--gray);margin-top:2px}
 
-/* ── BUTTONS ── */
 .btn-row{display:flex;gap:12px;margin-top:6px}
 .btn{flex:1;padding:13px;border:none;border-radius:11px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
 .btn-primary{background:linear-gradient(135deg,#0B2A5A,#1565C0);color:#fff;box-shadow:0 4px 14px rgba(11,42,90,.3)}
@@ -138,14 +122,54 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .btn-pdf{background:linear-gradient(135deg,#007AB8,#00AEEF);color:#fff;box-shadow:0 4px 14px rgba(0,174,239,.3)}
 .btn-pdf:hover{transform:translateY(-1px)}
 
-/* ── OVERLAY / MODAL ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:none;align-items:center;justify-content:center;padding:14px}
+/* ══ MODAL — FIXED ══ */
+.overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.65);
+  z-index:100;
+  display:none;
+  align-items:flex-start;
+  justify-content:center;
+  padding:0;
+  overflow-y:auto;
+}
 .overlay.show{display:flex}
-.modal{background:var(--white);border-radius:18px;max-width:720px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4);padding:26px;position:relative}
-.modal-close{position:absolute;top:14px;left:14px;background:var(--ice);border:none;border-radius:7px;width:32px;height:32px;font-size:16px;cursor:pointer;color:var(--gray)}
-.modal-close:hover{background:#FFE5E5;color:var(--red)}
+.modal{
+  background:var(--white);
+  border-radius:0;
+  width:100%;
+  max-width:760px;
+  min-height:100vh;
+  box-shadow:0 0 60px rgba(0,0,0,.4);
+  position:relative;
+  margin:0 auto;
+}
+/* Sticky top bar inside modal */
+.modal-topbar{
+  position:sticky;top:0;z-index:10;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:#f8fafc;
+  border-bottom:1.5px solid #D0DCE8;
+}
+.modal-topbar .close-btn{
+  display:flex;align-items:center;gap:6px;
+  background:#fff;border:2px solid #C0392B;border-radius:10px;
+  padding:8px 18px;font-family:inherit;font-size:14px;font-weight:700;
+  color:#C0392B;cursor:pointer;transition:all .15s;
+}
+.modal-topbar .close-btn:hover{background:#fff0f0}
+.modal-topbar .dl-btn{
+  display:flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,#007AB8,#00AEEF);
+  border:none;border-radius:10px;
+  padding:8px 20px;font-family:inherit;font-size:14px;font-weight:700;
+  color:#fff;cursor:pointer;transition:all .15s;
+}
+.modal-topbar .dl-btn:hover{opacity:.9}
+#certContent{padding:16px}
 
-/* ── SEARCH ── */
+/* SEARCH */
 .emp-profile{background:linear-gradient(135deg,#071830,#0B2A5A,#1565C0);border-radius:14px;padding:20px;color:#fff;margin-bottom:14px}
 .emp-profile .ep-name{font-size:19px;font-weight:700;margin-bottom:3px}
 .emp-profile .ep-id{font-size:12px;color:#8AAABB}
@@ -172,25 +196,11 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .drive-photo img.loading{opacity:.15}
 .drive-photo .dp-lbl{font-size:10px;text-align:center;color:var(--gray);padding:3px;background:var(--ice)}
 .drive-photo .dp-err{height:90px;display:flex;align-items:center;justify-content:center;background:#FFF8E1;font-size:11px;color:#7A5800}
+
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:none;align-items:center;justify-content:center}
 .lightbox.show{display:flex}
 .lightbox img{max-width:92vw;max-height:88vh;border-radius:10px}
 
-/* ── CERT MODAL CLOSE ── */
-.cert-close-bar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 14px 0;
-}
-.cert-close-btn{
-  display:flex;align-items:center;gap:6px;
-  background:#FFF0F0;border:1.5px solid #E0AAAA;border-radius:10px;
-  padding:7px 16px;font-family:inherit;font-size:13px;font-weight:700;
-  color:#C0392B;cursor:pointer;transition:all .15s;
-}
-.cert-close-btn:hover{background:#FFE0E0;border-color:#C0392B;transform:scale(1.03)}
-.cert-close-btn .x-icon{font-size:16px;font-weight:900;line-height:1}background:var(--ice);border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:2;border-right:4px solid var(--teal)}
-
-/* ── SETUP ── */
 .setup-step{background:var(--ice);border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:2;border-right:4px solid var(--teal)}
 .loading-overlay{position:fixed;inset:0;background:rgba(7,24,48,.8);z-index:200;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
 .loading-overlay.show{display:flex}
@@ -206,136 +216,9 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .page{display:none}.page.active{display:block}
 
-/* ════════════════════════════════════
-   CERT — بطاقة الهوية (تصميم SEC)
-   ════════════════════════════════════ */
-.sec-cert{
-  font-family:'IBM Plex Sans Arabic',sans-serif;
-  direction:rtl;
-  width:100%;
-  border-radius:16px;
-  overflow:hidden;
-  box-shadow:0 4px 30px rgba(0,0,0,.2);
-  background:#fff;
-}
-
-/* Header: تدرج أزرق كالصورة */
-.sec-cert-header{
-  position:relative;
-  min-height:200px;
-  overflow:hidden;
-  display:flex;flex-direction:column;
-  justify-content:flex-end;
-  padding:20px 24px 18px;
-}
-.sec-cert-bg{
-  position:absolute;inset:0;
-  background:linear-gradient(160deg,#C8E8F8 0%,#A0D4EE 30%,#B8E8F4 50%,#E8F6FC 80%,#fff 100%);
-}
-/* diagonal teal sweep */
-.sec-cert-bg::before{
-  content:'';position:absolute;
-  top:-10%;right:-5%;
-  width:55%;height:110%;
-  background:linear-gradient(200deg,rgba(0,201,167,.55) 0%,rgba(0,174,239,.35) 60%,transparent 100%);
-  clip-path:polygon(40% 0%,100% 0%,100% 100%,0% 100%);
-}
-/* big gate number watermark */
-.sec-cert-num{
-  position:absolute;
-  right:50%;transform:translateX(60%);
-  top:-10px;
-  font-size:200px;
-  font-weight:800;
-  color:rgba(21,101,192,.18);
-  line-height:1;
-  pointer-events:none;
-  font-family:'IBM Plex Sans Arabic',sans-serif;
-  letter-spacing:-8px;
-}
-/* sec logo top right */
-.sec-cert-logo{
-  position:absolute;top:16px;left:16px;
-  display:flex;align-items:center;gap:6px;
-  font-size:20px;font-weight:800;color:#0B2A5A;
-  font-family:sans-serif;letter-spacing:-1px;
-}
-.sec-cert-logo .wave{color:#00AEEF;font-size:15px}
-.sec-cert-logo small{font-size:9px;font-weight:400;color:#1565C0;display:block;margin-top:-2px}
-
-/* doc type pill */
-.sec-cert-type{
-  position:absolute;top:16px;right:16px;
-  padding:5px 14px;border-radius:20px;
-  font-size:11px;font-weight:700;
-  border:1.5px solid;
-}
-.sec-cert-type.deliver{background:rgba(21,101,192,.12);border-color:rgba(21,101,192,.4);color:#0B2A5A}
-.sec-cert-type.receive{background:rgba(26,122,74,.12);border-color:rgba(26,122,74,.4);color:#0A4A2A}
-
-/* gate name */
-.sec-cert-gate{
-  position:relative;z-index:2;
-  font-size:38px;font-weight:800;color:#0B2A5A;
-  line-height:1;margin-bottom:4px;
-}
-.sec-cert-gate-sub{position:relative;z-index:2;font-size:12px;color:rgba(11,42,90,.6);font-weight:500}
-
-/* doc id strip */
-.sec-cert-strip{
-  background:#0B2A5A;
-  padding:8px 20px;
-  display:flex;align-items:center;justify-content:space-between;
-}
-.sec-cert-strip .doc-num{color:#00AEEF;font-size:12px;font-weight:700;letter-spacing:.5px}
-.sec-cert-strip .doc-date{color:rgba(255,255,255,.6);font-size:11px}
-
-/* body */
-.sec-cert-body{padding:18px 22px}
-.sc-section{margin-bottom:14px}
-.sc-section-title{font-size:9px;font-weight:700;color:var(--gray);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1.5px solid #E0EAF2}
-.sc-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.sc-field{background:#F4F8FC;border-radius:8px;padding:8px 12px;border-right:3px solid var(--teal)}
-.sc-field.accent{border-right-color:var(--gold)}
-.sc-field.green{border-right-color:var(--green)}
-.sc-field .sfl{font-size:9px;color:var(--gray);font-weight:700}
-.sc-field .sfv{font-size:12px;color:var(--navy);font-weight:600;margin-top:2px}
-.sc-field.full{grid-column:span 2}
-
-/* confirm box */
-.sc-confirm{border-radius:9px;padding:10px 14px;font-size:11px;line-height:1.8;border:1.5px solid;margin:10px 0}
-.sc-confirm.deliver{background:#EBF4FC;border-color:#1565C0;color:#0B2A5A}
-.sc-confirm.receive{background:#EAF5F0;border-color:#1A7A4A;color:#0A4A2A}
-
-/* checklist */
-.sc-checks{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:10px}
-.sc-check-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--navy)}
-.sc-chk{width:14px;height:14px;border-radius:3px;background:#1565C0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:8px;flex-shrink:0}
-
-/* PHOTOS — احترافية */
-.sc-photos-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
-.sc-photo-box{border-radius:10px;overflow:hidden;border:2px solid #D0DCE8;box-shadow:0 2px 8px rgba(11,42,90,.1)}
-.sc-photo-box img{width:100%;height:120px;object-fit:cover;display:block}
-.sc-photo-label{background:#0B2A5A;color:#fff;font-size:10px;font-weight:700;text-align:center;padding:4px;letter-spacing:.3px}
-
-/* signature */
-.sc-sig-row{display:flex;gap:16px;align-items:flex-end;padding:12px 20px;border-top:2px dashed #D0DCE8;background:#F8FBFD}
-.sc-sig-box{flex:1;text-align:center}
-.sc-sig-box img{max-height:50px;margin-bottom:4px}
-.sc-sig-line{border-top:1.5px solid #0B2A5A;width:140px;margin:0 auto 3px}
-.sc-sig-name{font-size:11px;color:#0B2A5A;font-weight:700}
-.sc-sig-role{font-size:9px;color:var(--gray);margin-top:1px}
-.sc-sig-meta{flex:1;text-align:center;font-size:9px;color:var(--gray);line-height:2}
-
-/* footer */
-.sec-cert-footer{background:linear-gradient(135deg,#071830,#0B2A5A);padding:8px 20px;display:flex;align-items:center;justify-content:space-between}
-.sec-cert-footer .f-txt{font-size:9px;color:rgba(255,255,255,.5)}
-.sec-cert-footer .f-docid{font-size:10px;color:var(--teal);font-weight:700;letter-spacing:.5px}
-
 @media(max-width:540px){
-  .form-row,.cameras,.sc-fields,.sc-photos-grid,.gates-grid,.stats-row,.rec-grid,.drive-photos,.ep-stats,.sc-checks{grid-template-columns:1fr}
+  .form-row,.cameras,.gates-grid,.stats-row,.rec-grid,.drive-photos,.ep-stats{grid-template-columns:1fr}
   .gates-grid{grid-template-columns:1fr 1fr}
-  .sc-field.full{grid-column:span 1}
 }
 </style>
 </head>
@@ -385,7 +268,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 
 <main>
 
-<!-- ══ GATES PAGE ══ -->
+<!-- GATES PAGE -->
 <div class="page active" id="page-gates">
   <div id="noConfigBanner" class="no-config" style="display:none">
     <p>⚠️ لم يتم إعداد رابط Google Sheets بعد</p>
@@ -410,7 +293,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
   </div>
 </div>
 
-<!-- ══ DELIVER PAGE ══ -->
+<!-- DELIVER PAGE -->
 <div class="page" id="page-deliver">
   <div class="status-banner deliver">
     <div class="s-icon">📤</div>
@@ -489,7 +372,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
   </div>
 </div>
 
-<!-- ══ RECEIVE PAGE ══ -->
+<!-- RECEIVE PAGE -->
 <div class="page" id="page-receive">
   <div class="status-banner receive">
     <div class="s-icon">📥</div>
@@ -560,7 +443,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
   </div>
 </div>
 
-<!-- ══ SEARCH PAGE ══ -->
+<!-- SEARCH PAGE -->
 <div class="page" id="page-search">
   <div class="card" style="margin-bottom:14px">
     <div class="card-header"><div class="dot"></div>بحث عن موظف</div>
@@ -574,7 +457,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
   <div id="searchResults"></div>
 </div>
 
-<!-- ══ SETUP PAGE ══ -->
+<!-- SETUP PAGE -->
 <div class="page" id="page-setup">
   <div class="card">
     <div class="card-header"><div class="dot"></div>إعدادات الاتصال</div>
@@ -613,21 +496,16 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 </div>
 </main>
 
-<!-- Cert Modal -->
-<div class="overlay" id="overlay" onclick="if(event.target===this)this.classList.remove('show')">
-  <div class="modal" style="padding:0;overflow:hidden">
-    <!-- Close & Download Bar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-bottom:1.5px solid #D0DCE8;position:sticky;top:0;z-index:10">
-      <button onclick="document.getElementById('overlay').classList.remove('show')"
-        style="display:flex;align-items:center;gap:6px;background:#fff;border:2px solid #C0392B;border-radius:10px;padding:7px 16px;font-family:inherit;font-size:14px;font-weight:700;color:#C0392B;cursor:pointer">
+<!-- CERT MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-topbar">
+      <button class="close-btn" onclick="document.getElementById('overlay').classList.remove('show')">
         <span style="font-size:18px;font-weight:900;line-height:1">✕</span> رجوع
       </button>
-      <button onclick="downloadPDF()"
-        style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,#007AB8,#00AEEF);border:none;border-radius:10px;padding:7px 18px;font-family:inherit;font-size:14px;font-weight:700;color:#fff;cursor:pointer">
-        📄 تحميل PDF
-      </button>
+      <button class="dl-btn" onclick="downloadPDF()">📄 تحميل PDF</button>
     </div>
-    <div id="certContent" style="padding:16px"></div>
+    <div id="certContent"></div>
   </div>
 </div>
 
@@ -639,9 +517,6 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
 
 <script>
-// ═══════════════════════════════════════════════
-// APPS SCRIPT CODE (مدمج للعرض في صفحة الإعدادات)
-// ═══════════════════════════════════════════════
 const APPS_SCRIPT_CODE = `// نظام تسليم واستلام الأجهزة
 const HANDOVER_SHEET = 'العهد';
 const EMP_SHEET      = 'الموظفون';
@@ -771,15 +646,10 @@ function out(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }`;
 
-// inject code into pre
 document.getElementById('appsScriptPre').textContent = APPS_SCRIPT_CODE;
 
-// ═══════════════════════════════════════════════
-// CONFIG
-// ═══════════════════════════════════════════════
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz9FRRpF3p5UpEzLzqpJw-DOQ_cpROGGqsZonEmS-kTRDPXhtnaLa9GIBQzd8fcPnoRpA/exec';
 
-// Guard SVG — رجل أمن بالأزرق
 function guardSVG(size=44){
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="${size}" height="${size}">
     <ellipse cx="32" cy="68" rx="18" ry="4" fill="rgba(0,0,0,.08)"/>
@@ -799,7 +669,6 @@ function guardSVG(size=44){
     <rect x="33" y="58" width="11" height="12" rx="3" fill="#0D47A1"/>
   </svg>`;
 }
-// Building SVG — مبنى الزوار
 function buildingSVG(size=44){
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="${size}" height="${size}">
     <ellipse cx="32" cy="68" rx="20" ry="3.5" fill="rgba(0,0,0,.08)"/>
@@ -817,25 +686,18 @@ function buildingSVG(size=44){
     <path d="M28 4 L32 1.5 L36 4 L36 9 L32 11 L28 9 Z" fill="#FFD700" opacity=".9"/>
   </svg>`;
 }
-// Gate SVG — بوابة أمنية برقم
 function gateSVG(num, size=44){
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="${size}" height="${size}">
     <ellipse cx="32" cy="69" rx="18" ry="3" fill="rgba(0,0,0,.07)"/>
-    <!-- Posts -->
     <rect x="6" y="14" width="8" height="52" rx="3" fill="#0D47A1"/>
     <rect x="50" y="14" width="8" height="52" rx="3" fill="#0D47A1"/>
-    <!-- Arch top -->
     <path d="M6 28 Q32 4 58 28" fill="none" stroke="#0D47A1" stroke-width="6" stroke-linecap="round"/>
-    <!-- Gate doors -->
     <rect x="14" y="28" width="15" height="32" rx="2" fill="#1565C0"/>
     <rect x="35" y="28" width="15" height="32" rx="2" fill="#1565C0"/>
-    <!-- Door panels -->
     <rect x="16" y="30" width="11" height="14" rx="1.5" fill="#1976D2" opacity=".7"/>
     <rect x="37" y="30" width="11" height="14" rx="1.5" fill="#1976D2" opacity=".7"/>
-    <!-- Shield on arch -->
     <path d="M26 12 L32 9 L38 12 L38 20 L32 23 L26 20 Z" fill="#FFD700" opacity=".95"/>
     <text x="32" y="19" text-anchor="middle" fill="#0B2A5A" font-size="7" font-weight="bold" font-family="sans-serif">${num}</text>
-    <!-- Cap on posts -->
     <rect x="4" y="11" width="12" height="4" rx="2" fill="#FFD700" opacity=".9"/>
     <rect x="48" y="11" width="12" height="4" rx="2" fill="#FFD700" opacity=".9"/>
   </svg>`;
@@ -849,14 +711,10 @@ const GATES = [
   {id:'gate6',    name:'بوابة 6',      num:'6', guard:true},
   {id:'visitors', name:'مبنى الزوار', num:'🏢', guard:false},
 ];
-
 const DEFAULT_TYPES = ['لابتوب / Laptop','جوال / Mobile Phone','تابلت / Tablet',
   'طابعة / Printer','جهاز مكتبي / Desktop PC','شاشة / Monitor',
   'راديو لاسلكي / Radio','جهاز أمني / Security Device','أخرى'];
 
-// ═══════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════
 let sheetUrl     = SHEET_URL;
 let allRecords   = [];
 let selectedGate = null;
@@ -867,13 +725,9 @@ let currentMode  = 'deliver';
 let refreshTimer = null;
 const sigs = {};
 
-// ═══════════════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════════════
 (function init(){
   document.getElementById('headerDate').textContent =
     new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  // allow override from localStorage
   const saved = localStorage.getItem('sheetUrl');
   if(saved) sheetUrl = saved;
   document.getElementById('sheetUrlInput').value = sheetUrl;
@@ -884,9 +738,6 @@ const sigs = {};
   startAutoRefresh();
 })();
 
-// ═══════════════════════════════════════════════
-// SIGNATURE
-// ═══════════════════════════════════════════════
 function initSig(p){
   const canvas=document.getElementById(p+'_sigCanvas');
   const ctx=canvas.getContext('2d');
@@ -904,9 +755,6 @@ function initSig(p){
 function clearSig(p){sigs[p].ctx.clearRect(0,0,sigs[p].canvas.width,sigs[p].canvas.height);}
 function isBlankSig(p){const d=sigs[p].ctx.getImageData(0,0,sigs[p].canvas.width,sigs[p].canvas.height).data;for(let i=3;i<d.length;i+=4)if(d[i]>10)return false;return true;}
 
-// ═══════════════════════════════════════════════
-// NAV
-// ═══════════════════════════════════════════════
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
@@ -937,9 +785,6 @@ function startDeliver(){
   showPage('deliver');
 }
 
-// ═══════════════════════════════════════════════
-// GATES
-// ═══════════════════════════════════════════════
 function renderGates(cid, isForm){
   const c=document.getElementById(cid);
   c.innerHTML=GATES.map(g=>`
@@ -999,9 +844,6 @@ function selectDeliverGate(gid){
   const el=document.getElementById('deliverGatesGrid_'+gid);if(el)el.classList.add('active');
 }
 
-// ═══════════════════════════════════════════════
-// RECEIVE FORM
-// ═══════════════════════════════════════════════
 function openReceiveForm(docId){
   const r=allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
   if(!r){showToast('❌ لم يُعثر على السجل','error');return;}
@@ -1034,9 +876,6 @@ function openReceiveForm(docId){
   showToast('📋 تم تحميل بيانات العهدة');
 }
 
-// ═══════════════════════════════════════════════
-// EMPLOYEE LOOKUP
-// ═══════════════════════════════════════════════
 const empTimers={};
 function lookupEmp(prefix,val){
   const nameEl=document.getElementById(prefix==='d'?'d_empName':'r_receiverEmpName');
@@ -1055,9 +894,6 @@ function lookupEmp(prefix,val){
   },500);
 }
 
-// ═══════════════════════════════════════════════
-// DEVICE TYPES
-// ═══════════════════════════════════════════════
 async function loadDeviceTypes(){
   const sel=document.getElementById('d_deviceType');
   try{
@@ -1069,9 +905,6 @@ async function loadDeviceTypes(){
   }
 }
 
-// ═══════════════════════════════════════════════
-// IMAGES
-// ═══════════════════════════════════════════════
 function loadImg(side,input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
@@ -1087,9 +920,6 @@ function loadImg(side,input){
   reader.readAsDataURL(file);
 }
 
-// ═══════════════════════════════════════════════
-// SUBMIT DELIVER
-// ═══════════════════════════════════════════════
 async function submitDeliver(){
   if(!deliverGate){showToast('⚠️ اختر البوابة أولاً','error');return;}
   const empId=document.getElementById('d_empId').value.trim();
@@ -1131,9 +961,6 @@ async function uploadPhoto(docId,side,dataUrl){
   return apiPost({action:'uploadPhoto',docId,side,base64,mimeType});
 }
 
-// ═══════════════════════════════════════════════
-// SUBMIT RECEIVE
-// ═══════════════════════════════════════════════
 async function submitReceive(){
   if(!currentCertId){showToast('⚠️ لم يتم تحديد العهدة','error');return;}
   const rEmpId=document.getElementById('r_receiverEmpId').value.trim();
@@ -1159,9 +986,6 @@ async function submitReceive(){
   finally{hideLoading();}
 }
 
-// ═══════════════════════════════════════════════
-// SEARCH
-// ═══════════════════════════════════════════════
 let searchTimer=null;
 function doSearch(val){clearTimeout(searchTimer);searchTimer=setTimeout(()=>_doSearch(val),300);}
 function _doSearch(val){
@@ -1216,9 +1040,6 @@ function _doSearch(val){
   }).join('<div style="height:18px"></div>');
 }
 
-// ═══════════════════════════════════════════════
-// LIGHTBOX
-// ═══════════════════════════════════════════════
 function openLightbox(url){
   document.getElementById('lightboxImg').src=url;
   document.getElementById('lightbox').classList.add('show');
@@ -1228,10 +1049,6 @@ document.getElementById('lightbox').addEventListener('click',()=>{
   document.getElementById('lightboxImg').src='';
 });
 
-
-// ═══════════════════════════════════════════════
-// CERT — هوية بوابة
-// ═══════════════════════════════════════════════
 function buildCertHTML(mode, forPDF){
   const isD=mode==='deliver';
   const now=new Date();
@@ -1287,9 +1104,6 @@ function buildCertHTML(mode, forPDF){
     ?`تم تسليم الجهاز المذكور أعلاه في ${gate} بحالة سليمة بتاريخ ${dStr}. يُقرّ المُسلِّم ${senderEmpName} بتسليمه وفق ما هو مذكور في هذه الوثيقة.`
     :`تم استلام الجهاز رسمياً في ${gate} بتاريخ ${dStr}. يُقرّ المُستلِم ${receiverEmpName} بأنه تسلّم الجهاز من ${senderEmpName} ويتحمل المسؤولية الكاملة عنه.`;
 
-  const W=forPDF?'750px':'100%';
-  const BR=forPDF?'0':'16px';
-
   const photosHTML=(deliverImgs.front||deliverImgs.back)?`
     <div style="margin-bottom:14px">
       <div style="font-size:9px;font-weight:700;color:#6B7A8D;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EAF2;margin-bottom:10px">صور الجهاز</div>
@@ -1306,15 +1120,15 @@ function buildCertHTML(mode, forPDF){
     </tr>`:'').filter(Boolean).join('')}
   </table>`;
 
-  return `<div style="font-family:'IBM Plex Sans Arabic',Arial,sans-serif;direction:rtl;width:${W};border-radius:${BR};overflow:hidden;box-shadow:${forPDF?'none':'0 4px 30px rgba(0,0,0,.2)'};background:#fff">
-  <div style="position:relative;min-height:160px;overflow:hidden;background:linear-gradient(160deg,#C8E8F8 0%,#A0D4EE 30%,#B8E8F4 50%,#E8F6FC 80%,#fff 100%);padding:16px 18px 14px;display:flex;flex-direction:column;justify-content:flex-end">
+  return `<div style="font-family:'IBM Plex Sans Arabic',Arial,sans-serif;direction:rtl;width:100%;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);background:#fff">
+  <div style="position:relative;min-height:150px;overflow:hidden;background:linear-gradient(160deg,#C8E8F8 0%,#A0D4EE 30%,#B8E8F4 50%,#E8F6FC 80%,#fff 100%);padding:16px 18px 14px;display:flex;flex-direction:column;justify-content:flex-end">
     <div style="position:absolute;right:50%;transform:translateX(60%);top:-20px;font-size:160px;font-weight:800;color:rgba(21,101,192,.12);line-height:1;pointer-events:none">${gateNum}</div>
     <div style="position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:5px">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 32" width="20" height="20"><path d="M14 1 L26 6 L26 18 Q26 27 14 31 Q2 27 2 18 L2 6 Z" fill="#0B2A5A" stroke="#00AEEF" stroke-width="1.5"/><path d="M14 5 L22 9 L22 17 Q22 23 14 27 Q6 23 6 17 L6 9 Z" fill="#1565C0"/><text x="14" y="20" text-anchor="middle" fill="#FFD700" font-size="10" font-weight="bold">&#9733;</text></svg>
       <span style="font-size:9px;font-weight:600;color:#1565C0">نظام العهد</span>
     </div>
     <div style="position:absolute;top:12px;right:12px;background:${typeBg};border:1.5px solid ${typeBorder};color:${typeColor};padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700">${typeLabel}</div>
-    <div style="position:relative;z-index:2;font-size:32px;font-weight:800;color:#0B2A5A;line-height:1;margin-bottom:3px">${gate}</div>
+    <div style="position:relative;z-index:2;font-size:28px;font-weight:800;color:#0B2A5A;line-height:1;margin-bottom:3px">${gate}</div>
     <div style="position:relative;z-index:2;font-size:11px;color:rgba(11,42,90,.55)">نظام إدارة العهد الأمنية</div>
   </div>
   <div style="background:#0B2A5A;padding:7px 16px;display:flex;align-items:center;justify-content:space-between">
@@ -1375,7 +1189,12 @@ function buildCertHTML(mode, forPDF){
 function previewCert(mode){
   currentMode=mode;
   document.getElementById('certContent').innerHTML=buildCertHTML(mode,false);
-  document.getElementById('overlay').classList.add('show');
+  const overlay=document.getElementById('overlay');
+  overlay.classList.add('show');
+  // scroll modal to top
+  overlay.scrollTop=0;
+  const modal=overlay.querySelector('.modal');
+  if(modal)modal.scrollTop=0;
 }
 
 async function downloadPDF(){
@@ -1383,44 +1202,66 @@ async function downloadPDF(){
   if(!window.html2canvas)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
   showLoading('جاري إنشاء PDF...');
   try{
+    // Build a standalone HTML page for rendering
     const certHTML=buildCertHTML(currentMode,true);
-    const iframe=document.createElement('iframe');
-    iframe.style.cssText='position:fixed;left:-9999px;top:0;width:800px;height:2px;border:none;opacity:0;pointer-events:none';
-    document.body.appendChild(iframe);
-    const iDoc=iframe.contentDocument||iframe.contentWindow.document;
-    iDoc.open();
-    iDoc.write(`<!DOCTYPE html>
+    const fullHtml=`<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}html,body{direction:rtl;background:#fff;width:800px}body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;padding:14px}</style>
+<style>*{box-sizing:border-box;margin:0;padding:0}html,body{direction:rtl;background:#fff;width:794px;font-family:'IBM Plex Sans Arabic',Arial,sans-serif}body{padding:16px}</style>
 </head>
 <body dir="rtl">${certHTML}</body>
-</html>`);
-    iDoc.close();
-    await new Promise(r=>setTimeout(r,2000));
+</html>`;
+
+    // Use iframe approach
+    const iframe=document.createElement('iframe');
+    iframe.style.cssText='position:fixed;left:-9999px;top:0;width:794px;height:10px;border:none;visibility:hidden';
+    document.body.appendChild(iframe);
+
+    await new Promise((resolve)=>{
+      iframe.onload=resolve;
+      const iDoc=iframe.contentDocument||iframe.contentWindow.document;
+      iDoc.open();iDoc.write(fullHtml);iDoc.close();
+    });
+
+    // wait for fonts + images
+    await new Promise(r=>setTimeout(r,2500));
+
+    const iDoc=iframe.contentDocument||iframe.contentWindow.document;
     const body=iDoc.body;
-    iframe.style.height=(body.scrollHeight+40)+'px';
-    await new Promise(r=>setTimeout(r,400));
-    const canvas=await html2canvas(body,{scale:2,useCORS:true,backgroundColor:'#fff',allowTaint:true,scrollX:0,scrollY:0,width:800,windowWidth:800,logging:false,foreignObjectRendering:false});
+    const h=body.scrollHeight+40;
+    iframe.style.height=h+'px';
+    await new Promise(r=>setTimeout(r,300));
+
+    const canvas=await html2canvas(body,{
+      scale:2,useCORS:true,backgroundColor:'#fff',
+      allowTaint:true,scrollX:0,scrollY:0,
+      width:794,windowWidth:794,
+      logging:false
+    });
     document.body.removeChild(iframe);
-    const img=canvas.toDataURL('image/jpeg',.94);
+
+    const imgData=canvas.toDataURL('image/jpeg',.94);
     const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
-    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+    const pw=pdf.internal.pageSize.getWidth();
+    const ph=pdf.internal.pageSize.getHeight();
     const ih=(canvas.height*pw)/canvas.width;
     let y=0;
-    while(y<ih){if(y>0)pdf.addPage();pdf.addImage(img,'JPEG',0,-y,pw,ih);y+=ph;}
-    pdf.save(`${currentMode==='deliver'?'تسليم':'استلام'}_${currentCertId||''}.pdf`);
+    while(y<ih){
+      if(y>0)pdf.addPage();
+      pdf.addImage(imgData,'JPEG',0,-y,pw,ih);
+      y+=ph;
+    }
+    const fname=(currentMode==='deliver'?'تسليم':'استلام')+'_'+(currentCertId||'')+'.pdf';
+    pdf.save(fname);
     showToast('✅ تم تحميل PDF','success');
-  }catch(e){console.error(e);showToast('❌ خطأ: '+e.message,'error');}
-  finally{hideLoading();}
+  }catch(e){
+    console.error(e);
+    showToast('❌ خطأ في إنشاء PDF: '+e.message,'error');
+  }finally{hideLoading();}
 }
 
-// ═══════════════════════════════════════════════
-// DATA REFRESH
-// ═══════════════════════════════════════════════
 function startAutoRefresh(){clearInterval(refreshTimer);refreshTimer=setInterval(()=>silentRefresh(),30000);}
 async function silentRefresh(){
   try{const d=await apiGet('getAll');if(d.data){allRecords=d.data;updateCounts();if(selectedGate)refreshGatePanel();}}catch(_){}
@@ -1435,9 +1276,6 @@ async function refreshData(){
   finally{hideLoading();}
 }
 
-// ═══════════════════════════════════════════════
-// SETTINGS
-// ═══════════════════════════════════════════════
 function saveUrl(){
   sheetUrl=document.getElementById('sheetUrlInput').value.trim()||SHEET_URL;
   localStorage.setItem('sheetUrl',sheetUrl);
@@ -1459,15 +1297,9 @@ function copyCode(){
   showToast('📋 تم نسخ الكود','success');
 }
 
-// ═══════════════════════════════════════════════
-// API
-// ═══════════════════════════════════════════════
 async function apiGet(action){const r=await fetch(`${sheetUrl}?action=${action}&t=${Date.now()}`);return r.json();}
 async function apiPost(body){const r=await fetch(sheetUrl,{method:'POST',body:JSON.stringify(body)});const d=await r.json();if(d.error)throw new Error(d.error);return d;}
 
-// ═══════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════
 function genId(){const n=new Date();return 'HD-'+n.getFullYear()+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0')+'-'+Math.floor(1000+Math.random()*9000);}
 function showLoading(m){document.getElementById('loadingMsg').textContent=m;document.getElementById('loadingOverlay').classList.add('show');}
 function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show');}

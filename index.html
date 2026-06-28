@@ -1228,169 +1228,154 @@ document.getElementById('lightbox').addEventListener('click',()=>{
   document.getElementById('lightboxImg').src='';
 });
 
-// ═══════════════════════════════════════════════
-// CERT — هوية بوابة SEC
-// ═══════════════════════════════════════════════
-function previewCert(mode){
-  currentMode=mode;
-  document.getElementById('certContent').innerHTML=buildCert(mode);
-  document.getElementById('overlay').classList.add('show');
-}
 
-function buildCert(mode){
+// ═══════════════════════════════════════════════
+// CERT — هوية بوابة
+// ═══════════════════════════════════════════════
+function buildCertHTML(mode, forPDF){
   const isD=mode==='deliver';
-  const certId=currentCertId||'—';
   const now=new Date();
-  const dStr=now.toLocaleDateString('ar-SA',{year:'numeric',month:'2-digit',day:'2-digit'});
-  const tStr=now.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+  const dStr=now.toLocaleDateString('ar-SA-u-nu-latn',{year:'numeric',month:'2-digit',day:'2-digit'});
+  const tStr=now.toLocaleTimeString('ar-SA-u-nu-latn',{hour:'2-digit',minute:'2-digit'});
+  const certId=currentCertId||'—';
 
-  let devType,empName,empId,gate,gateNum,notes,serial,sigPrefix;
+  let devType,serial,empId,empName,notes,gate,gateNum;
+  let senderEmpId='—',senderEmpName='—',receiverEmpId='—',receiverEmpName='—';
+
   if(isD){
     devType=document.getElementById('d_deviceType').value||'—';
-    serial =document.getElementById('d_serial').value||'';
-    empId  =document.getElementById('d_empId').value||'—';
+    serial=document.getElementById('d_serial').value||'';
+    empId=document.getElementById('d_empId').value||'—';
     empName=document.getElementById('d_empName').value||'—';
-    notes  =document.getElementById('d_notes').value||'';
+    notes=document.getElementById('d_notes').value||'';
     const gObj=deliverGate?GATES.find(g=>g.id===deliverGate):null;
     gate=gObj?gObj.name:'—'; gateNum=gObj?gObj.num:'?';
-    sigPrefix='d';
+    senderEmpId=empId; senderEmpName=empName;
   }else{
     devType=document.getElementById('r_deviceType').value||'—';
-    serial =document.getElementById('r_serial').value||'';
-    empId  =document.getElementById('r_empId').value||'—';
+    serial=document.getElementById('r_serial').value||'';
+    empId=document.getElementById('r_empId').value||'—';
     empName=document.getElementById('r_empName').value||'—';
-    notes  =document.getElementById('r_notes').value||'';
-    gate   =document.getElementById('r_location').value||'—';
+    notes=document.getElementById('r_notes').value||'';
+    gate=document.getElementById('r_location').value||'—';
     const gObj=GATES.find(g=>g.name===gate);
-    gateNum=gObj?gObj.num:gate.replace(/[^٠-٩0-9]/g,'');
-    sigPrefix='r';
+    gateNum=gObj?gObj.num:gate.replace(/[^\u0660-\u06690-9]/g,'');
+    senderEmpId=empId; senderEmpName=empName;
+    receiverEmpId=document.getElementById('r_receiverEmpId').value||'—';
+    receiverEmpName=document.getElementById('r_receiverEmpName').value||'—';
   }
+
+  const sigPrefix=isD?'d':'r';
   const hasSig=!isBlankSig(sigPrefix);
   const sigImg=sigs[sigPrefix].canvas.toDataURL();
-  const signerName=isD?empName:(document.getElementById('r_receiverEmpName').value||empName);
-  const signerRole=isD?'توقيع المُسلِّم':'توقيع المُستلِم';
+  const signerName=isD?senderEmpName:receiverEmpName;
+  const signerRole=isD?'المُسلِّم':'المُستلِم';
 
-  const devIcons={'لابتوب':'💻','جوال':'📱','تابلت':'📱','طابعة':'🖨️','مكتبي':'🖥️','شاشة':'🖥️','راديو':'📻','أمني':'🛡️'};
+  const devIcons={'لابتوب':'💻','جوال':'📱','تابلت':'📱','طابعة':'🖨️','مكتبي':'🖥️','شاشة':'🖥️','راديو':'📻','أمني':'🛡️','قارئ':'📡','هونيويل':'📟'};
   let devIcon='📦';
   for(const[k,v]of Object.entries(devIcons)){if(devType.includes(k)){devIcon=v;break;}}
-
-  // احترافي: صور مع تسمية وإطار
-  const photosBlock=(deliverImgs.front||deliverImgs.back)?`
-    <div class="sc-section">
-      <div class="sc-section-title">صور الجهاز</div>
-      <div class="sc-photos-grid">
-        ${deliverImgs.front?`<div class="sc-photo-box"><img src="${deliverImgs.front}" alt="صورة الأمام"><div class="sc-photo-label">📷 الأمام — Front</div></div>`:''}
-        ${deliverImgs.back ?`<div class="sc-photo-box"><img src="${deliverImgs.back}" alt="صورة الخلف"><div class="sc-photo-label">📷 الخلف — Back</div></div>`:''}
-      </div>
-    </div>`:'';
 
   const checksD=['لا توجد خدوش ظاهرة','لا يوجد كسر أو شرخ','الشاشة سليمة','الجهاز يعمل طبيعياً','الملحقات مكتملة'];
   const checksR=['تم التسليم الرسمي','الجهاز مُستلم','المسؤولية محوّلة','تم التوثيق','السجل مُحدَّث'];
   const checks=isD?checksD:checksR;
 
-  const receiverBlock=!isD?`
-    <div class="sc-section">
-      <div class="sc-section-title">بيانات المُستلِم</div>
-      <div class="sc-fields">
-        <div class="sc-field accent"><div class="sfl">الرقم الوظيفي</div><div class="sfv">${document.getElementById('r_receiverEmpId').value||'—'}</div></div>
-        <div class="sc-field accent"><div class="sfl">الاسم</div><div class="sfv">${document.getElementById('r_receiverEmpName').value||'—'}</div></div>
-      </div>
+  const typeColor=isD?'#1565C0':'#1A7A4A';
+  const typeBg=isD?'#EBF4FC':'#EAF5F0';
+  const typeBorder=isD?'#1565C0':'#1A7A4A';
+  const typeLabel=isD?'📤 وثيقة تسليم':'📥 وثيقة استلام';
+  const confirmText=isD
+    ?`تم تسليم الجهاز المذكور أعلاه في ${gate} بحالة سليمة بتاريخ ${dStr}. يُقرّ المُسلِّم ${senderEmpName} بتسليمه وفق ما هو مذكور في هذه الوثيقة.`
+    :`تم استلام الجهاز رسمياً في ${gate} بتاريخ ${dStr}. يُقرّ المُستلِم ${receiverEmpName} بأنه تسلّم الجهاز من ${senderEmpName} ويتحمل المسؤولية الكاملة عنه.`;
+
+  const W=forPDF?'750px':'100%';
+  const BR=forPDF?'0':'16px';
+
+  const photosHTML=(deliverImgs.front||deliverImgs.back)?`
+    <div style="margin-bottom:14px">
+      <div style="font-size:9px;font-weight:700;color:#6B7A8D;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EAF2;margin-bottom:10px">صور الجهاز</div>
+      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+        ${deliverImgs.front?`<td width="50%"><div style="border-radius:8px;overflow:hidden;border:2px solid #D0DCE8"><img src="${deliverImgs.front}" style="width:100%;height:110px;object-fit:cover;display:block"><div style="background:#0B2A5A;color:#fff;font-size:9px;text-align:center;padding:4px;font-weight:700">الأمام</div></div></td>`:'<td width="50%"></td>'}
+        ${deliverImgs.back?`<td width="50%"><div style="border-radius:8px;overflow:hidden;border:2px solid #D0DCE8"><img src="${deliverImgs.back}" style="width:100%;height:110px;object-fit:cover;display:block"><div style="background:#0B2A5A;color:#fff;font-size:9px;text-align:center;padding:4px;font-weight:700">الخلف</div></div></td>`:'<td width="50%"></td>'}
+      </tr></table>
     </div>`:'';
 
-  return `<div class="sec-cert" dir="rtl" style="direction:rtl;font-family:'IBM Plex Sans Arabic',Arial,sans-serif">
-    <!-- HEADER -->
-    <div class="sec-cert-header">
-      <div class="sec-cert-bg"></div>
-      <div class="sec-cert-num">${gateNum}</div>
-      <div class="sec-cert-logo">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 32" width="26" height="26">
-          <path d="M14 1 L26 6 L26 18 Q26 27 14 31 Q2 27 2 18 L2 6 Z" fill="#0B2A5A" stroke="#00AEEF" stroke-width="1.5"/>
-          <path d="M14 5 L22 9 L22 17 Q22 23 14 27 Q6 23 6 17 L6 9 Z" fill="#1565C0"/>
-          <text x="14" y="20" text-anchor="middle" fill="#FFD700" font-size="10" font-weight="bold" font-family="sans-serif">★</text>
-        </svg>
-        <small style="font-size:9px;font-weight:600;color:#1565C0;display:block;margin-top:-1px">نظام العهد</small>
-      </div>
-      <div class="sec-cert-type ${mode}">${isD?'📤 وثيقة تسليم':'📥 وثيقة استلام'}</div>
-      <div class="sec-cert-gate">${gate}</div>
-      <div class="sec-cert-gate-sub">نظام إدارة العهد الأمنية</div>
+  const checksHTML=`<table width="100%" cellspacing="5" cellpadding="0" border="0">
+    ${checks.map((c,i)=>i%2===0?`<tr>
+      <td width="50%" style="padding-bottom:4px"><div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#0B2A5A"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#1565C0;border-radius:3px;color:#fff;font-size:8px;flex-shrink:0">✓</span>${c}</div></td>
+      <td width="50%">${checks[i+1]?`<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:#0B2A5A"><span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;background:#1565C0;border-radius:3px;color:#fff;font-size:8px;flex-shrink:0">✓</span>${checks[i+1]}</div>`:''}</td>
+    </tr>`:'').filter(Boolean).join('')}
+  </table>`;
+
+  return `<div style="font-family:'IBM Plex Sans Arabic',Arial,sans-serif;direction:rtl;width:${W};border-radius:${BR};overflow:hidden;box-shadow:${forPDF?'none':'0 4px 30px rgba(0,0,0,.2)'};background:#fff">
+  <div style="position:relative;min-height:160px;overflow:hidden;background:linear-gradient(160deg,#C8E8F8 0%,#A0D4EE 30%,#B8E8F4 50%,#E8F6FC 80%,#fff 100%);padding:16px 18px 14px;display:flex;flex-direction:column;justify-content:flex-end">
+    <div style="position:absolute;right:50%;transform:translateX(60%);top:-20px;font-size:160px;font-weight:800;color:rgba(21,101,192,.12);line-height:1;pointer-events:none">${gateNum}</div>
+    <div style="position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:5px">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 32" width="20" height="20"><path d="M14 1 L26 6 L26 18 Q26 27 14 31 Q2 27 2 18 L2 6 Z" fill="#0B2A5A" stroke="#00AEEF" stroke-width="1.5"/><path d="M14 5 L22 9 L22 17 Q22 23 14 27 Q6 23 6 17 L6 9 Z" fill="#1565C0"/><text x="14" y="20" text-anchor="middle" fill="#FFD700" font-size="10" font-weight="bold">&#9733;</text></svg>
+      <span style="font-size:9px;font-weight:600;color:#1565C0">نظام العهد</span>
     </div>
-
-    <!-- STRIP -->
-    <div class="sec-cert-strip">
-      <div class="doc-num">📄 ${certId}</div>
-      <div class="doc-date">${dStr} — ${tStr}</div>
+    <div style="position:absolute;top:12px;right:12px;background:${typeBg};border:1.5px solid ${typeBorder};color:${typeColor};padding:4px 11px;border-radius:20px;font-size:10px;font-weight:700">${typeLabel}</div>
+    <div style="position:relative;z-index:2;font-size:32px;font-weight:800;color:#0B2A5A;line-height:1;margin-bottom:3px">${gate}</div>
+    <div style="position:relative;z-index:2;font-size:11px;color:rgba(11,42,90,.55)">نظام إدارة العهد الأمنية</div>
+  </div>
+  <div style="background:#0B2A5A;padding:7px 16px;display:flex;align-items:center;justify-content:space-between">
+    <span style="color:#00AEEF;font-size:11px;font-weight:700">${certId}</span>
+    <span style="color:rgba(255,255,255,.6);font-size:10px">${dStr} — ${tStr}</span>
+  </div>
+  <div style="padding:15px 16px">
+    <div style="margin-bottom:13px">
+      <div style="font-size:9px;font-weight:700;color:#6B7A8D;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EAF2;margin-bottom:8px">بيانات الجهاز</div>
+      <table width="100%" cellspacing="6" cellpadding="0" border="0"><tr>
+        <td width="50%"><div style="background:#F4F8FC;border-radius:8px;padding:8px 10px;border-right:3px solid #00AEEF"><div style="font-size:9px;color:#6B7A8D;font-weight:700">نوع الجهاز</div><div style="font-size:12px;color:#0B2A5A;font-weight:600;margin-top:2px">${devIcon} ${devType}</div></div></td>
+        <td width="50%">${serial?`<div style="background:#F4F8FC;border-radius:8px;padding:8px 10px;border-right:3px solid #00AEEF"><div style="font-size:9px;color:#6B7A8D;font-weight:700">الرقم التسلسلي</div><div style="font-size:12px;color:#0B2A5A;font-weight:600;margin-top:2px">${serial}</div></div>`:''}</td>
+      </tr></table>
     </div>
-
-    <!-- BODY -->
-    <div class="sec-cert-body">
-
-      <!-- 1. بيانات الجهاز -->
-      <div class="sc-section">
-        <div class="sc-section-title">بيانات الجهاز</div>
-        <div class="sc-fields">
-          <div class="sc-field"><div class="sfl">نوع الجهاز</div><div class="sfv">${devIcon} ${devType}</div></div>
-          ${serial?`<div class="sc-field"><div class="sfl">الرقم التسلسلي</div><div class="sfv">${serial}</div></div>`:'<div></div>'}
-        </div>
-      </div>
-
-      <!-- 2. بيانات الموظف المُسلَّم له -->
-      <div class="sc-section">
-        <div class="sc-section-title">${isD?'الموظف المُسلَّم له':'بيانات التسليم الأصلي'}</div>
-        <div class="sc-fields">
-          <div class="sc-field green"><div class="sfl">الرقم الوظيفي</div><div class="sfv">${empId}</div></div>
-          <div class="sc-field green"><div class="sfl">الاسم</div><div class="sfv">${empName}</div></div>
-        </div>
-      </div>
-
-      <!-- 3. بيانات المُستلِم (في حالة الاستلام فقط) -->
-      ${receiverBlock}
-
-      <!-- 4. إقرار -->
-      <div class="sc-confirm ${mode}" style="text-align:right;direction:rtl">
-        <strong>${isD?'✅ إقرار التسليم:':'✅ إقرار الاستلام:'}</strong><br>
-        ${isD
-          ?`تم تسليم الجهاز المذكور أعلاه في ${gate} بحالة سليمة. يُقرّ المستلِم باستلامه وفق ما هو مذكور في هذه الوثيقة وتاريخه ${dStr}.`
-          :`تم استلام الجهاز رسمياً من ${gate}. يُقرّ المستلِم بأنه تسلّم الجهاز ويتحمل المسؤولية الكاملة عنه اعتباراً من ${dStr}.`}
-      </div>
-
-      <!-- 5. حالة الجهاز -->
-      <div class="sc-section">
-        <div class="sc-section-title">${isD?'حالة الجهاز عند التسليم':'تأكيدات الاستلام'}</div>
-        <div class="sc-checks">
-          ${checks.map(i=>`<div class="sc-check-item"><div class="sc-chk">✓</div><span>${i}</span></div>`).join('')}
-        </div>
-      </div>
-
-      <!-- 6. ملاحظات -->
-      ${notes?`<div class="sc-section"><div class="sc-section-title">ملاحظات</div><div class="sc-field full" style="grid-column:span 2"><div class="sfv">${notes}</div></div></div>`:''}
-
-      <!-- 7. صور -->
-      ${photosBlock}
-
-    </div><!-- /body -->
-
-    <!-- SIGNATURE -->
-    <div class="sc-sig-row">
-      <div class="sc-sig-box">
-        ${hasSig?`<img src="${sigImg}" alt="توقيع" style="max-height:52px;margin-bottom:5px;display:block;margin-right:auto;margin-left:auto">`:'<div style="height:52px"></div>'}
-        <div class="sc-sig-line"></div>
-        <div class="sc-sig-name">${signerName}</div>
-        <div class="sc-sig-role">${signerRole}</div>
-      </div>
-      <div class="sc-sig-meta">
-        <div style="font-size:11px;color:var(--navy);font-weight:700;margin-bottom:6px">وثيقة رسمية معتمدة</div>
-        <div>التاريخ: ${dStr}</div>
-        <div>الوقت: ${tStr}</div>
-        <div>الموقع: ${gate}</div>
-      </div>
+    <div style="margin-bottom:13px">
+      <div style="font-size:9px;font-weight:700;color:#6B7A8D;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EAF2;margin-bottom:8px">بيانات المُسلِّم</div>
+      <table width="100%" cellspacing="6" cellpadding="0" border="0"><tr>
+        <td width="50%"><div style="background:#F4F8FC;border-radius:8px;padding:8px 10px;border-right:3px solid #1565C0"><div style="font-size:9px;color:#6B7A8D;font-weight:700">الرقم الوظيفي</div><div style="font-size:13px;color:#0B2A5A;font-weight:700;margin-top:2px">${senderEmpId}</div></div></td>
+        <td width="50%"><div style="background:#F4F8FC;border-radius:8px;padding:8px 10px;border-right:3px solid #1565C0"><div style="font-size:9px;color:#6B7A8D;font-weight:700">الاسم</div><div style="font-size:13px;color:#0B2A5A;font-weight:700;margin-top:2px">${senderEmpName}</div></div></td>
+      </tr></table>
     </div>
-
-    <!-- FOOTER -->
-    <div class="sec-cert-footer">
-      <div class="f-txt">نظام إدارة العهد الأمنية — تسليم واستلام الأجهزة</div>
-      <div class="f-docid">${certId}</div>
+    ${!isD?`<div style="margin-bottom:13px">
+      <div style="font-size:9px;font-weight:700;color:#6B7A8D;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EAF2;margin-bottom:8px">بيانات المُستلِم</div>
+      <table width="100%" cellspacing="6" cellpadding="0" border="0"><tr>
+        <td width="50%"><div style="background:#EAF5F0;border-radius:8px;padding:8px 10px;border-right:3px solid #1A7A4A"><div style="font-size:9px;color:#6B7A8D;font-weight:700">الرقم الوظيفي</div><div style="font-size:13px;color:#0A4A2A;font-weight:700;margin-top:2px">${receiverEmpId}</div></div></td>
+        <td width="50%"><div style="background:#EAF5F0;border-radius:8px;padding:8px 10px;border-right:3px solid #1A7A4A"><div style="font-size:9px;color:#6B7A8D;font-weight:700">الاسم</div><div style="font-size:13px;color:#0A4A2A;font-weight:700;margin-top:2px">${receiverEmpName}</div></div></td>
+      </tr></table>
+    </div>`:''}
+    <div style="background:${typeBg};border:1.5px solid ${typeBorder};border-radius:9px;padding:10px 13px;font-size:11px;line-height:1.9;color:${typeColor};margin-bottom:13px;direction:rtl;text-align:right">
+      <strong>${isD?'✅ إقرار التسليم:':'✅ إقرار الاستلام:'}</strong><br>${confirmText}
     </div>
-  </div>`;
+    <div style="margin-bottom:13px">
+      <div style="font-size:9px;font-weight:700;color:#6B7A8D;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EAF2;margin-bottom:8px">${isD?'حالة الجهاز عند التسليم':'تأكيدات الاستلام'}</div>
+      ${checksHTML}
+    </div>
+    ${notes?`<div style="margin-bottom:13px"><div style="font-size:9px;font-weight:700;color:#6B7A8D;letter-spacing:.8px;padding-bottom:5px;border-bottom:1.5px solid #E0EAF2;margin-bottom:8px">ملاحظات</div><div style="background:#FFF9EC;border-radius:8px;padding:9px 12px;font-size:11px;color:#0B2A5A;line-height:1.8;border-right:3px solid #C8960C">${notes}</div></div>`:''}
+    ${photosHTML}
+  </div>
+  <div style="border-top:2px dashed #D0DCE8;background:#F8FBFD;padding:11px 16px;display:flex;gap:14px;align-items:flex-end">
+    <div style="flex:1;text-align:center">
+      ${hasSig?`<img src="${sigImg}" style="max-height:46px;margin-bottom:4px;display:block;margin-left:auto;margin-right:auto" alt="توقيع">`:'<div style="height:46px"></div>'}
+      <div style="border-top:1.5px solid #0B2A5A;width:120px;margin:0 auto 3px"></div>
+      <div style="font-size:11px;color:#0B2A5A;font-weight:700">${signerName}</div>
+      <div style="font-size:9px;color:#6B7A8D;margin-top:1px">${signerRole}</div>
+    </div>
+    <div style="flex:1;text-align:center;font-size:9px;color:#6B7A8D;line-height:2.2">
+      <div style="font-size:10px;color:#0B2A5A;font-weight:700;margin-bottom:3px">وثيقة رسمية معتمدة</div>
+      <div>التاريخ: ${dStr}</div><div>الوقت: ${tStr}</div><div>الموقع: ${gate}</div>
+    </div>
+  </div>
+  <div style="background:linear-gradient(135deg,#071830,#0B2A5A);padding:7px 16px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:9px;color:rgba(255,255,255,.4)">نظام إدارة العهد الأمنية</span>
+    <span style="font-size:10px;color:#00AEEF;font-weight:700">${certId}</span>
+  </div>
+</div>`;
+}
+
+function previewCert(mode){
+  currentMode=mode;
+  document.getElementById('certContent').innerHTML=buildCertHTML(mode,false);
+  document.getElementById('overlay').classList.add('show');
 }
 
 async function downloadPDF(){
@@ -1398,70 +1383,38 @@ async function downloadPDF(){
   if(!window.html2canvas)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
   showLoading('جاري إنشاء PDF...');
   try{
-    // Build a standalone RTL page for proper Arabic rendering
-    const certHTML = document.getElementById('certContent').innerHTML;
-    const fontLink = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700;800&display=swap">';
-    const styles = Array.from(document.styleSheets)
-      .filter(s=>{ try{return s.cssRules&&s.href===null}catch(e){return false} })
-      .map(s=>Array.from(s.cssRules).map(r=>r.cssText).join('\n')).join('\n');
-
-    // Use an iframe for isolated, correct RTL rendering
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText='position:fixed;left:-9999px;top:0;width:794px;height:1px;border:none;visibility:hidden';
+    const certHTML=buildCertHTML(currentMode,true);
+    const iframe=document.createElement('iframe');
+    iframe.style.cssText='position:fixed;left:-9999px;top:0;width:800px;height:2px;border:none;opacity:0;pointer-events:none';
     document.body.appendChild(iframe);
-
-    const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+    const iDoc=iframe.contentDocument||iframe.contentWindow.document;
     iDoc.open();
-    iDoc.write(`<!DOCTYPE html><html lang="ar" dir="rtl">
-      <head><meta charset="UTF-8">${fontLink}
-      <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;background:#fff;direction:rtl;width:754px;padding:20px}
-        :root{--navy:#0B2A5A;--blue:#1565C0;--blue2:#1976D2;--teal:#00AEEF;--teal2:#0097CC;
-          --sec-green:#00C9A7;--gold:#C8960C;--ice:#EDF4FA;--white:#FFF;
-          --gray:#6B7A8D;--border:#D0DCE8;--red:#C0392B;--green:#1A7A4A;--orange:#D4691E}
-        ${styles}
-      </style></head>
-      <body>${certHTML}</body></html>`);
+    iDoc.write(`<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}html,body{direction:rtl;background:#fff;width:800px}body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;padding:14px}</style>
+</head>
+<body dir="rtl">${certHTML}</body>
+</html>`);
     iDoc.close();
-
-    // Wait for fonts to load
-    await new Promise(r => setTimeout(r, 1200));
-
-    // Resize iframe to content
-    const body = iDoc.body;
-    iframe.style.height = body.scrollHeight + 'px';
-    await new Promise(r => setTimeout(r, 200));
-
-    const c = await html2canvas(body, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#fff',
-      allowTaint: true,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: 754,
-      logging: false
-    });
+    await new Promise(r=>setTimeout(r,2000));
+    const body=iDoc.body;
+    iframe.style.height=(body.scrollHeight+40)+'px';
+    await new Promise(r=>setTimeout(r,400));
+    const canvas=await html2canvas(body,{scale:2,useCORS:true,backgroundColor:'#fff',allowTaint:true,scrollX:0,scrollY:0,width:800,windowWidth:800,logging:false,foreignObjectRendering:false});
     document.body.removeChild(iframe);
-
-    const img = c.toDataURL('image/jpeg', .93);
-    const pdf = new jsPDF({orientation:'p', unit:'mm', format:'a4'});
-    const w = pdf.internal.pageSize.getWidth();
-    const ph = pdf.internal.pageSize.getHeight();
-    const h = (c.height * w) / c.width;
-    let y = 0;
-    while(y < h){
-      if(y > 0) pdf.addPage();
-      pdf.addImage(img, 'JPEG', 0, -y, w, h);
-      y += ph;
-    }
+    const img=canvas.toDataURL('image/jpeg',.94);
+    const pdf=new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight();
+    const ih=(canvas.height*pw)/canvas.width;
+    let y=0;
+    while(y<ih){if(y>0)pdf.addPage();pdf.addImage(img,'JPEG',0,-y,pw,ih);y+=ph;}
     pdf.save(`${currentMode==='deliver'?'تسليم':'استلام'}_${currentCertId||''}.pdf`);
     showToast('✅ تم تحميل PDF','success');
-  }catch(e){
-    console.error(e);
-    showToast('❌ خطأ في PDF: '+e.message,'error');
-  }
+  }catch(e){console.error(e);showToast('❌ خطأ: '+e.message,'error');}
   finally{hideLoading();}
 }
 

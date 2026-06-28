@@ -195,7 +195,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
   color:#C0392B;cursor:pointer;transition:all .15s;
 }
 .cert-close-btn:hover{background:#FFE0E0;border-color:#C0392B;transform:scale(1.03)}
-.cert-close-btn .x-icon{font-size:16px;font-weight:900;line-height:1}
+.cert-close-btn .x-icon{font-size:16px;font-weight:900;line-height:1}background:var(--ice);border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:2;border-right:4px solid var(--teal)}
 
 /* ── SETUP ── */
 .setup-step{background:var(--ice);border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:2;border-right:4px solid var(--teal)}
@@ -875,57 +875,6 @@ const sigs = {};
 
 // ═══════════════════════════════════════════════
 // BOOT
-// ═══════════════════════════════════════════════
-// UTILITIES
-// ═══════════════════════════════════════════════
-function showToast(msg, type=''){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast'+(type?' '+type:'');
-  t.style.display='flex';
-  clearTimeout(t._tid);
-  t._tid=setTimeout(()=>{ t.style.display='none'; },3200);
-}
-function showLoading(msg='جاري التحميل...'){
-  document.getElementById('loadingMsg').textContent=msg;
-  document.getElementById('loadingOverlay').classList.add('show');
-}
-function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('show'); }
-function genId(){
-  const n=new Date();
-  return 'HD-'+n.getFullYear().toString().slice(2)+
-    String(n.getMonth()+1).padStart(2,'0')+
-    String(n.getDate()).padStart(2,'0')+'-'+
-    Math.random().toString(36).slice(2,7).toUpperCase();
-}
-async function apiGet(action){
-  const res=await fetch(sheetUrl+'?action='+action,{method:'GET',mode:'cors'});
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  return res.json();
-}
-async function apiPost(data){
-  const res=await fetch(sheetUrl,{method:'POST',mode:'cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(data)});
-  if(!res.ok) throw new Error('HTTP '+res.status);
-  return res.json();
-}
-async function refreshData(){
-  if(!sheetUrl){document.getElementById('noConfigBanner').style.display='block';return;}
-  document.getElementById('noConfigBanner').style.display='none';
-  try{
-    const d=await apiGet('getAll');
-    if(d&&d.data){ allRecords=d.data; updateCounts(); if(selectedGate)refreshGatePanel(); }
-  }catch(e){ console.warn('refreshData error:',e); }
-  try{ await loadDeviceTypes(); }catch(_){}
-}
-async function silentRefresh(){
-  try{
-    const d=await apiGet('getAll');
-    if(d&&d.data){ allRecords=d.data; updateCounts(); if(selectedGate)refreshGatePanel(); }
-  }catch(_){}
-}
-function startAutoRefresh(){ setInterval(silentRefresh, 60000); }
-
 // ═══════════════════════════════════════════════
 (function init(){
   document.getElementById('headerDate').textContent =

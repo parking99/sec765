@@ -1052,13 +1052,13 @@ document.getElementById('lightbox').addEventListener('click',()=>{
 function buildCertHTML(mode, forPDF){
   const isD=mode==='deliver';
   const now=new Date();
-  // Always use Latin numerals for dates so they display correctly
   const dStr=now.toLocaleDateString('en-GB',{year:'numeric',month:'2-digit',day:'2-digit'});
   const tStr=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   const certId=currentCertId||'—';
 
   let devType,serial,empId,empName,notes,gate,gateNum;
   let senderEmpId='—',senderEmpName='—',receiverEmpId='—',receiverEmpName='—';
+  let photoFront='', photoBack=''; // روابط أو base64 للصور
 
   if(isD){
     devType=document.getElementById('d_deviceType').value||'—';
@@ -1069,6 +1069,9 @@ function buildCertHTML(mode, forPDF){
     const gObj=deliverGate?GATES.find(g=>g.id===deliverGate):null;
     gate=gObj?gObj.name:'—'; gateNum=gObj?gObj.num:'?';
     senderEmpId=empId; senderEmpName=empName;
+    // صور التسليم — base64 من الجهاز
+    photoFront = deliverImgs.front||'';
+    photoBack  = deliverImgs.back||'';
   }else{
     devType=document.getElementById('r_deviceType').value||'—';
     serial=document.getElementById('r_serial').value||'';
@@ -1081,6 +1084,16 @@ function buildCertHTML(mode, forPDF){
     senderEmpId=empId; senderEmpName=empName;
     receiverEmpId=document.getElementById('r_receiverEmpId').value||'—';
     receiverEmpName=document.getElementById('r_receiverEmpName').value||'—';
+    // صور الاستلام — من السجل المحفوظ في allRecords
+    const rec=allRecords.find(r=>String(r['رقم_الوثيقة'])===String(certId));
+    if(rec){
+      const toThumb=url=>{const m=(url||'').match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`:url;};
+      photoFront = rec['صورة_الأمام'] ? toThumb(rec['صورة_الأمام']) : '';
+      photoBack  = rec['صورة_الخلف'] ? toThumb(rec['صورة_الخلف']) : '';
+    }
+    // fallback: صور التسليم الأصلية لو كانت موجودة
+    if(!photoFront && deliverImgs.front) photoFront = deliverImgs.front;
+    if(!photoBack  && deliverImgs.back)  photoBack  = deliverImgs.back;
   }
 
   const sigPrefix=isD?'d':'r';
@@ -1100,38 +1113,35 @@ function buildCertHTML(mode, forPDF){
   const typeColor=isD?'#1565C0':'#1A7A4A';
   const typeBg=isD?'#EBF4FC':'#EAF5F0';
   const typeBorder=isD?'#1565C0':'#1A7A4A';
-  const typeLabel=isD?'📤 وثيقة تسليم':'📥 وثيقة استلام';
+  const typeLabel=isD?'وثيقة تسليم':'وثيقة استلام';
   const confirmText=isD
     ?`تم تسليم الجهاز المذكور في ${gate} بتاريخ ${dStr}. يُقرّ المُسلِّم ${senderEmpName} بتسليمه وفق ما هو مذكور في هذه الوثيقة.`
     :`تم استلام الجهاز رسمياً في ${gate} بتاريخ ${dStr}. يُقرّ المُستلِم ${receiverEmpName} بأنه تسلّم الجهاز من ${senderEmpName} ويتحمل المسؤولية الكاملة عنه.`;
 
-  // ── الـ CSS الداخلي للشهادة ──
   const F="'IBM Plex Sans Arabic','Noto Sans Arabic',Arial,sans-serif";
   const BASE=`font-family:${F};direction:rtl;unicode-bidi:embed;text-align:right;`;
 
-  // ── قسم الصور ──
-  const hasPhotos = deliverImgs.front || deliverImgs.back;
-  const photosHTML = hasPhotos ? `
+  // ── صور الجهاز (تعمل في التسليم والاستلام) ──
+  const photoCell=(src,label)=> src
+    ? `<td width="50%" style="padding:4px;vertical-align:top;">
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #1565C0;box-shadow:0 2px 8px rgba(21,101,192,.15);">
+          <img src="${src}" style="width:100%;height:145px;object-fit:cover;display:block;" crossorigin="anonymous">
+          <div style="background:#0B2A5A;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px;font-family:${F};">${label}</div>
+        </div>
+      </td>`
+    : `<td width="50%" style="padding:4px;vertical-align:top;">
+        <div style="height:175px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;font-family:${F};">لا توجد صورة</div>
+      </td>`;
+
+  const photosHTML = (photoFront||photoBack) ? `
     <div style="${BASE}margin-bottom:16px;">
-      <div style="${BASE}font-size:10px;font-weight:700;color:#6B7A8D;letter-spacing:.5px;padding-bottom:6px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">
-        📷 صور الجهاز
+      <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">
+        صور الجهاز
       </div>
-      <table width="100%" cellspacing="10" cellpadding="0" border="0" style="border-collapse:separate;border-spacing:10px 0">
+      <table width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
-          <td width="50%" style="vertical-align:top;">
-            ${deliverImgs.front?`
-            <div style="border-radius:10px;overflow:hidden;border:2px solid #1565C0;box-shadow:0 2px 8px rgba(21,101,192,.15);">
-              <img src="${deliverImgs.front}" style="width:100%;height:140px;object-fit:cover;display:block;">
-              <div style="${BASE}background:#0B2A5A;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px;">صورة الأمام</div>
-            </div>`:'<div style="height:170px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;">لا توجد صورة</div>'}
-          </td>
-          <td width="50%" style="vertical-align:top;">
-            ${deliverImgs.back?`
-            <div style="border-radius:10px;overflow:hidden;border:2px solid #1565C0;box-shadow:0 2px 8px rgba(21,101,192,.15);">
-              <img src="${deliverImgs.back}" style="width:100%;height:140px;object-fit:cover;display:block;">
-              <div style="${BASE}background:#0B2A5A;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px;">صورة الخلف</div>
-            </div>`:'<div style="height:170px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;">لا توجد صورة</div>'}
-          </td>
+          ${photoCell(photoFront,'صورة الأمام')}
+          ${photoCell(photoBack,'صورة الخلف')}
         </tr>
       </table>
     </div>` : '';
@@ -1139,149 +1149,133 @@ function buildCertHTML(mode, forPDF){
   // ── قائمة التحقق ──
   const chkRow=(a,b)=>`
     <tr>
-      <td width="50%" style="padding-bottom:6px;vertical-align:top;">
+      <td width="50%" style="padding-bottom:7px;vertical-align:top;">
         <div style="${BASE}display:flex;align-items:center;gap:6px;font-size:11px;color:#0B2A5A;font-weight:500;">
-          <span style="display:inline-block;width:16px;height:16px;background:#1565C0;border-radius:4px;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:16px;flex-shrink:0;">✓</span>
+          <span style="display:inline-block;width:16px;height:16px;min-width:16px;background:#1565C0;border-radius:4px;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:16px;">✓</span>
           <span>${a}</span>
         </div>
       </td>
-      <td width="50%" style="padding-bottom:6px;vertical-align:top;">
+      <td width="50%" style="padding-bottom:7px;vertical-align:top;">
         ${b?`<div style="${BASE}display:flex;align-items:center;gap:6px;font-size:11px;color:#0B2A5A;font-weight:500;">
-          <span style="display:inline-block;width:16px;height:16px;background:#1565C0;border-radius:4px;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:16px;flex-shrink:0;">✓</span>
+          <span style="display:inline-block;width:16px;height:16px;min-width:16px;background:#1565C0;border-radius:4px;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:16px;">✓</span>
           <span>${b}</span>
         </div>`:''}
       </td>
     </tr>`;
+  const checksRows=checks.reduce((acc,c,i)=>{if(i%2===0)acc.push(chkRow(c,checks[i+1]||''));return acc;},[]).join('');
 
-  const checksRows=checks.reduce((acc,c,i)=>{
-    if(i%2===0)acc.push(chkRow(c, checks[i+1]||''));
-    return acc;
-  },[]).join('');
-
-  // ── helper: بطاقة حقل ──
   const field=(lbl,val,bg='#F4F8FC',border='#00AEEF',valColor='#0B2A5A')=>`
-    <div style="${BASE}background:${bg};border-radius:8px;padding:9px 12px;border-right:3px solid ${border};margin-bottom:0;">
+    <div style="${BASE}background:${bg};border-radius:8px;padding:9px 12px;border-right:3px solid ${border};">
       <div style="${BASE}font-size:10px;color:#6B7A8D;font-weight:700;margin-bottom:3px;">${lbl}</div>
       <div style="${BASE}font-size:13px;color:${valColor};font-weight:700;">${val}</div>
     </div>`;
 
-  // ── helper: عنوان قسم ──
-  const sec=(t)=>`<div style="${BASE}font-size:10px;font-weight:700;color:#6B7A8D;letter-spacing:.5px;padding-bottom:6px;border-bottom:2px solid #E0EAF2;margin-bottom:10px;margin-top:0;">${t}</div>`;
+  const sec=(t)=>`<div style="${BASE}font-size:10px;font-weight:700;color:#6B7A8D;padding-bottom:6px;border-bottom:2px solid #E0EAF2;margin-bottom:10px;">${t}</div>`;
+
+  // لون الشارة حسب النوع
+  const badgeStyle=`background:${typeBg};border:1.5px solid ${typeBorder};color:${typeColor};padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;font-family:${F};`;
 
   return `
 <div style="${BASE}width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.13);background:#fff;">
 
-  <!-- هيدر الشهادة -->
-  <div style="position:relative;min-height:155px;overflow:hidden;background:linear-gradient(150deg,#C8E8F8 0%,#9DCEED 35%,#B5E3F2 55%,#E4F4FB 80%,#fff 100%);padding:18px 20px 16px;">
-    <!-- رقم البوابة كخلفية -->
-    <div style="position:absolute;left:10px;top:-15px;font-size:155px;font-weight:800;color:rgba(21,101,192,.1);line-height:1;pointer-events:none;font-family:Arial,sans-serif;">${gateNum}</div>
-    <!-- شعار النظام يسار -->
-    <div style="${BASE}position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:6px;">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 32" width="22" height="22"><path d="M14 1 L26 6 L26 18 Q26 27 14 31 Q2 27 2 18 L2 6 Z" fill="#0B2A5A" stroke="#00AEEF" stroke-width="1.5"/><path d="M14 5 L22 9 L22 17 Q22 23 14 27 Q6 23 6 17 L6 9 Z" fill="#1565C0"/><text x="14" y="20" text-anchor="middle" fill="#FFD700" font-size="10" font-weight="bold">★</text></svg>
-      <span style="${BASE}font-size:10px;font-weight:700;color:#1565C0;">نظام العهد</span>
-    </div>
-    <!-- بادج النوع يمين -->
-    <div style="${BASE}position:absolute;top:14px;right:14px;background:${typeBg};border:1.5px solid ${typeBorder};color:${typeColor};padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;">${typeLabel}</div>
+  <!-- هيدر -->
+  <div style="position:relative;min-height:150px;overflow:hidden;background:linear-gradient(150deg,#C8E8F8 0%,#9DCEED 35%,#B5E3F2 55%,#E4F4FB 80%,#fff 100%);padding:16px 18px;">
+    <!-- رقم البوابة watermark -->
+    <div style="position:absolute;left:8px;top:-10px;font-size:148px;font-weight:800;color:rgba(21,101,192,.09);line-height:1;pointer-events:none;font-family:Arial,sans-serif;z-index:0;">${gateNum}</div>
+    <!-- شعار — نص فقط بدون SVG -->
+    <div style="position:absolute;top:12px;left:12px;background:rgba(21,101,192,.1);border:1px solid rgba(21,101,192,.25);border-radius:8px;padding:4px 10px;font-family:${F};font-size:10px;font-weight:700;color:#0B2A5A;z-index:2;">نظام العهد الأمنية</div>
+    <!-- بادج النوع -->
+    <div style="position:absolute;top:12px;right:12px;${badgeStyle}z-index:2;">${isD?'📤 ':' 📥 '}${typeLabel}</div>
     <!-- اسم البوابة -->
-    <div style="${BASE}position:relative;z-index:2;margin-top:60px;">
-      <div style="${BASE}font-size:30px;font-weight:800;color:#0B2A5A;line-height:1.1;margin-bottom:3px;">${gate}</div>
-      <div style="${BASE}font-size:11px;color:rgba(11,42,90,.5);font-weight:500;">نظام إدارة العهد الأمنية</div>
+    <div style="position:relative;z-index:2;margin-top:58px;">
+      <div style="${BASE}font-size:32px;font-weight:800;color:#0B2A5A;line-height:1.1;margin-bottom:2px;">${gate}</div>
+      <div style="${BASE}font-size:11px;color:rgba(11,42,90,.5);">نظام إدارة العهد الأمنية</div>
     </div>
   </div>
 
-  <!-- شريط رقم الوثيقة -->
-  <div style="${BASE}background:#0B2A5A;padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
+  <!-- شريط الوثيقة -->
+  <div style="background:#0B2A5A;padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
     <span style="${BASE}color:#00AEEF;font-size:12px;font-weight:700;letter-spacing:.5px;">${certId}</span>
-    <span style="${BASE}color:rgba(255,255,255,.6);font-size:11px;">${dStr} — ${tStr}</span>
+    <span style="color:rgba(255,255,255,.65);font-size:11px;font-family:${F};">${dStr} — ${tStr}</span>
   </div>
 
   <!-- جسم الشهادة -->
-  <div style="${BASE}padding:18px 18px 4px;">
+  <div style="${BASE}padding:16px 18px 6px;">
 
     <!-- بيانات الجهاز -->
-    <div style="${BASE}margin-bottom:15px;">
+    <div style="${BASE}margin-bottom:14px;">
       ${sec('بيانات الجهاز')}
-      <table width="100%" cellspacing="8" cellpadding="0" border="0">
-        <tr>
-          <td width="50%">${field('نوع الجهاز', devIcon+' '+devType, '#F4F8FC', '#00AEEF')}</td>
-          <td width="50%">${serial?field('الرقم التسلسلي', serial, '#F4F8FC', '#00AEEF'):''}</td>
-        </tr>
-      </table>
+      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+        <td width="50%">${field('نوع الجهاز', devType, '#F4F8FC', '#00AEEF')}</td>
+        <td width="50%">${serial?field('الرقم التسلسلي', serial, '#F4F8FC', '#00AEEF'):''}</td>
+      </tr></table>
     </div>
 
-    <!-- صور الجهاز — قسم مستقل وواضح -->
+    <!-- صور الجهاز -->
     ${photosHTML}
 
     <!-- بيانات المُسلِّم -->
-    <div style="${BASE}margin-bottom:15px;">
+    <div style="${BASE}margin-bottom:14px;">
       ${sec('بيانات المُسلِّم')}
-      <table width="100%" cellspacing="8" cellpadding="0" border="0">
-        <tr>
-          <td width="50%">${field('الرقم الوظيفي', senderEmpId, '#F4F8FC', '#1565C0')}</td>
-          <td width="50%">${field('الاسم', senderEmpName, '#F4F8FC', '#1565C0')}</td>
-        </tr>
-      </table>
+      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+        <td width="50%">${field('الرقم الوظيفي', senderEmpId, '#F4F8FC', '#1565C0')}</td>
+        <td width="50%">${field('الاسم', senderEmpName, '#F4F8FC', '#1565C0')}</td>
+      </tr></table>
     </div>
 
-    <!-- بيانات المُستلِم (عند الاستلام فقط) -->
-    ${!isD?`
-    <div style="${BASE}margin-bottom:15px;">
+    <!-- بيانات المُستلِم -->
+    ${!isD?`<div style="${BASE}margin-bottom:14px;">
       ${sec('بيانات المُستلِم')}
-      <table width="100%" cellspacing="8" cellpadding="0" border="0">
-        <tr>
-          <td width="50%">${field('الرقم الوظيفي', receiverEmpId, '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
-          <td width="50%">${field('الاسم', receiverEmpName, '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
-        </tr>
-      </table>
+      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+        <td width="50%">${field('الرقم الوظيفي', receiverEmpId, '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
+        <td width="50%">${field('الاسم', receiverEmpName, '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
+      </tr></table>
     </div>`:''}
 
     <!-- إقرار -->
-    <div style="${BASE}background:${typeBg};border:2px solid ${typeBorder};border-radius:10px;padding:12px 15px;margin-bottom:15px;">
-      <div style="${BASE}font-size:12px;font-weight:700;color:${typeColor};margin-bottom:5px;">${isD?'✅ إقرار التسليم':'✅ إقرار الاستلام'}</div>
-      <div style="${BASE}font-size:12px;color:${typeColor};line-height:1.8;">${confirmText}</div>
+    <div style="${BASE}background:${typeBg};border:2px solid ${typeBorder};border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+      <div style="${BASE}font-size:12px;font-weight:700;color:${typeColor};margin-bottom:5px;">${isD?'اقرار التسليم':'اقرار الاستلام'}</div>
+      <div style="${BASE}font-size:12px;color:${typeColor};line-height:1.9;">${confirmText}</div>
     </div>
 
     <!-- قائمة التحقق -->
-    <div style="${BASE}margin-bottom:15px;">
+    <div style="${BASE}margin-bottom:14px;">
       ${sec(isD?'حالة الجهاز عند التسليم':'تأكيدات الاستلام')}
       <table width="100%" cellspacing="0" cellpadding="0" border="0">${checksRows}</table>
     </div>
 
     <!-- ملاحظات -->
-    ${notes?`
-    <div style="${BASE}margin-bottom:15px;">
+    ${notes?`<div style="${BASE}margin-bottom:14px;">
       ${sec('ملاحظات')}
       <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:10px 13px;font-size:12px;color:#0B2A5A;line-height:1.8;border-right:3px solid #C8960C;">${notes}</div>
     </div>`:''}
 
   </div>
 
-  <!-- قسم التوقيع -->
-  <div style="${BASE}border-top:2px dashed #D0DCE8;background:#F8FBFD;padding:14px 18px;">
-    <table width="100%" cellspacing="0" cellpadding="0" border="0">
-      <tr>
-        <td width="50%" style="text-align:center;vertical-align:bottom;padding-left:10px;">
-          ${hasSig?`<img src="${sigImg}" style="max-height:55px;margin-bottom:5px;display:block;margin-left:auto;margin-right:auto;" alt="توقيع">`:'<div style="height:55px;"></div>'}
-          <div style="border-top:2px solid #0B2A5A;width:130px;margin:0 auto 4px;"></div>
-          <div style="${BASE}font-size:12px;color:#0B2A5A;font-weight:700;text-align:center;">${signerName}</div>
-          <div style="${BASE}font-size:10px;color:#6B7A8D;margin-top:2px;text-align:center;">${signerRole}</div>
-        </td>
-        <td width="50%" style="vertical-align:middle;padding-right:10px;">
-          <div style="${BASE}background:#EDF4FA;border-radius:10px;padding:12px 14px;border-right:3px solid #00AEEF;">
-            <div style="${BASE}font-size:11px;color:#0B2A5A;font-weight:700;margin-bottom:6px;">وثيقة رسمية معتمدة</div>
-            <div style="${BASE}font-size:10px;color:#6B7A8D;line-height:2;">
-              <div>📅 التاريخ: ${dStr}</div>
-              <div>🕐 الوقت: ${tStr}</div>
-              <div>📍 الموقع: ${gate}</div>
-            </div>
+  <!-- التوقيع -->
+  <div style="border-top:2px dashed #D0DCE8;background:#F8FBFD;padding:14px 18px;">
+    <table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
+      <td width="50%" style="text-align:center;vertical-align:bottom;padding:0 8px;">
+        ${hasSig?`<img src="${sigImg}" style="max-height:55px;margin-bottom:5px;display:block;margin:0 auto 5px;" alt="sig">`:'<div style="height:55px;"></div>'}
+        <div style="border-top:2px solid #0B2A5A;width:130px;margin:0 auto 4px;"></div>
+        <div style="${BASE}font-size:12px;color:#0B2A5A;font-weight:700;text-align:center;">${signerName}</div>
+        <div style="${BASE}font-size:10px;color:#6B7A8D;text-align:center;margin-top:2px;">${signerRole}</div>
+      </td>
+      <td width="50%" style="vertical-align:middle;padding:0 8px;">
+        <div style="${BASE}background:#EDF4FA;border-radius:10px;padding:12px 14px;border-right:3px solid #00AEEF;">
+          <div style="${BASE}font-size:11px;color:#0B2A5A;font-weight:700;margin-bottom:7px;">وثيقة رسمية معتمدة</div>
+          <div style="${BASE}font-size:10px;color:#6B7A8D;line-height:2.1;">
+            <div>التاريخ: ${dStr}</div>
+            <div>الوقت: ${tStr}</div>
+            <div>الموقع: ${gate}</div>
           </div>
-        </td>
-      </tr>
-    </table>
+        </div>
+      </td>
+    </tr></table>
   </div>
 
   <!-- فوتر -->
-  <div style="${BASE}background:linear-gradient(135deg,#071830,#0B2A5A);padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
+  <div style="background:linear-gradient(135deg,#071830,#0B2A5A);padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
     <span style="${BASE}font-size:9px;color:rgba(255,255,255,.4);">نظام إدارة العهد الأمنية</span>
     <span style="${BASE}font-size:11px;color:#00AEEF;font-weight:700;">${certId}</span>
   </div>

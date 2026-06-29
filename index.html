@@ -1084,16 +1084,18 @@ function buildCertHTML(mode, forPDF){
     senderEmpId=empId; senderEmpName=empName;
     receiverEmpId=document.getElementById('r_receiverEmpId').value||'—';
     receiverEmpName=document.getElementById('r_receiverEmpName').value||'—';
-    // صور الاستلام — من السجل المحفوظ في allRecords
-    const rec=allRecords.find(r=>String(r['رقم_الوثيقة'])===String(certId));
-    if(rec){
+    // صور الاستلام — أولاً من deliverImgs (لو حوّلها downloadPDF)، ثم من السجل
+    const rec2=allRecords.find(r=>String(r['رقم_الوثيقة'])===String(certId));
+    if(deliverImgs.front) photoFront = deliverImgs.front;
+    else if(rec2 && rec2['صورة_الأمام']){
       const toThumb=url=>{const m=(url||'').match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`:url;};
-      photoFront = rec['صورة_الأمام'] ? toThumb(rec['صورة_الأمام']) : '';
-      photoBack  = rec['صورة_الخلف'] ? toThumb(rec['صورة_الخلف']) : '';
+      photoFront = toThumb(rec2['صورة_الأمام']);
     }
-    // fallback: صور التسليم الأصلية لو كانت موجودة
-    if(!photoFront && deliverImgs.front) photoFront = deliverImgs.front;
-    if(!photoBack  && deliverImgs.back)  photoBack  = deliverImgs.back;
+    if(deliverImgs.back) photoBack = deliverImgs.back;
+    else if(rec2 && rec2['صورة_الخلف']){
+      const toThumb=url=>{const m=(url||'').match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`:url;};
+      photoBack = toThumb(rec2['صورة_الخلف']);
+    }
   }
 
   const sigPrefix=isD?'d':'r';
@@ -1294,15 +1296,64 @@ function previewCert(mode){
   if(modal)modal.scrollTop=0;
 }
 
+// تحويل URL صورة إلى base64 عبر canvas (يتجاوز CORS)
+async function imgUrlToBase64(url){
+  if(!url) return null;
+  // إذا كانت base64 بالفعل
+  if(url.startsWith('data:')) return url;
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=>{
+      try{
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth || img.width;
+        c.height = img.naturalHeight || img.height;
+        c.getContext('2d').drawImage(img,0,0);
+        resolve(c.toDataURL('image/jpeg',0.92));
+      }catch(e){ resolve(null); }
+    };
+    img.onerror = ()=> resolve(null);
+    // أضف timestamp لكسر الـ cache
+    img.src = url + (url.includes('?')?'&':'?') + '_t=' + Date.now();
+  });
+}
+
 async function downloadPDF(){
   const{jsPDF}=window.jspdf;
   if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-  showLoading('جاري إعداد PDF...');
+  showLoading('جاري تحضير الصور...');
   try{
+    // ── الخطوة 1: حوّل صور الجهاز إلى base64 أولاً ──
+    // صور التسليم (base64 من الجهاز) — عادةً جاهزة
+    // صور الاستلام (Drive URLs) — تحتاج تحويل
+    const origFront = deliverImgs.front;
+    const origBack  = deliverImgs.back;
+
+    // إذا الصور هي Drive URLs (في وضع الاستلام)، حوّلها
+    if(!origFront || !origBack){
+      const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
+      if(rec){
+        const toThumb=url=>{const m=(url||'').match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w600`:url;};
+        if(!origFront && rec['صورة_الأمام']){
+          const b64 = await imgUrlToBase64(toThumb(rec['صورة_الأمام']));
+          if(b64) deliverImgs.front = b64;
+        }
+        if(!origBack && rec['صورة_الخلف']){
+          const b64 = await imgUrlToBase64(toThumb(rec['صورة_الخلف']));
+          if(b64) deliverImgs.back = b64;
+        }
+      }
+    }
+
+    showLoading('جاري بناء الوثيقة...');
     const certHTML = buildCertHTML(currentMode, true);
 
-    // ── نُنشئ div مخفي داخل الصفحة الحالية بدل iframe
-    // هذا يضمن أن الخط العربي المحمّل مسبقاً يُستخدم مباشرة
+    // استعد الصور الأصلية
+    deliverImgs.front = origFront;
+    deliverImgs.back  = origBack;
+
+    // ── الخطوة 2: أنشئ wrapper مخفي ──
     const wrapper = document.createElement('div');
     wrapper.style.cssText = [
       'position:fixed','left:-9999px','top:0',
@@ -1310,19 +1361,21 @@ async function downloadPDF(){
       'font-family:"IBM Plex Sans Arabic",Arial,sans-serif',
       'direction:rtl','unicode-bidi:embed',
       'padding:16px','box-sizing:border-box',
-      'z-index:-1','pointer-events:none'
+      'z-index:-1','pointer-events:none',
+      'visibility:hidden'
     ].join(';');
     wrapper.innerHTML = certHTML;
     document.body.appendChild(wrapper);
 
-    // انتظر تحميل الصور + الخط
+    // انتظر تحميل الخط
     await document.fonts.ready;
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r=>setTimeout(r,500));
 
-    // قياس الارتفاع الحقيقي
-    const totalH = wrapper.scrollHeight + 30;
+    // قياس الارتفاع
+    wrapper.style.visibility = 'visible';
+    const totalH = wrapper.scrollHeight + 40;
     wrapper.style.height = totalH + 'px';
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r=>setTimeout(r,200));
 
     showLoading('جاري تحويل إلى PDF...');
 
@@ -1335,9 +1388,8 @@ async function downloadPDF(){
       width: 794,
       windowWidth: 794,
       logging: false,
-      imageTimeout: 8000,
-      onclone: (doc) => {
-        // تأكيد الـ RTL في النسخة المستنسخة
+      imageTimeout: 15000,
+      onclone:(doc)=>{
         doc.documentElement.setAttribute('dir','rtl');
         doc.documentElement.setAttribute('lang','ar');
       }
@@ -1354,17 +1406,17 @@ async function downloadPDF(){
     let y = 0;
     while(y < ih){
       if(y > 0) pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, -y, pw, ih);
+      pdf.addImage(imgData,'JPEG',0,-y,pw,ih);
       y += ph;
     }
 
-    const fname = (currentMode==='deliver' ? 'تسليم' : 'استلام') + '_' + (currentCertId||'') + '.pdf';
+    const fname = (currentMode==='deliver'?'تسليم':'استلام')+'_'+(currentCertId||'')+'.pdf';
     pdf.save(fname);
-    showToast('✅ تم تحميل PDF بنجاح','success');
+    showToast('✅ تم تحميل PDF','success');
 
   }catch(e){
-    console.error('PDF Error:', e);
-    showToast('❌ خطأ في PDF: ' + e.message,'error');
+    console.error('PDF Error:',e);
+    showToast('❌ خطأ في PDF: '+e.message,'error');
   }finally{
     hideLoading();
   }

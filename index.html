@@ -958,11 +958,18 @@ async function submitDeliver(){
       'الرقم_التسلسلي':document.getElementById('d_serial').value||'',
       'رقم_موظف_المسلم_له':empId,'اسم_موظف_المسلم_له':empName,
       'ملاحظات_التسليم':document.getElementById('d_notes').value||''});
-    showLoading('جاري رفع الصور...');
-    await Promise.allSettled([
-      uploadPhoto(certId,'front',deliverImgs.front),
-      uploadPhoto(certId,'back', deliverImgs.back)
-    ]);
+
+    // ── رفع الصور مع معالجة أخطاء حقيقية (لا نُخفي الفشل) ──
+    showLoading('جاري رفع صورة الأمام...');
+    const frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front);
+    showLoading('جاري رفع صورة الخلف...');
+    const backResult  = await uploadPhotoWithRetry(certId,'back', deliverImgs.back);
+
+    if(!frontResult.success || !backResult.success){
+      console.error('فشل رفع الصور:', {front:frontResult, back:backResult});
+      showToast('⚠️ تم الحفظ لكن فشل رفع بعض الصور — راجع وحدة التحكم (Console)','error');
+    }
+
     currentCertId=certId; currentMode='deliver';
     await silentRefresh();
     showToast('✅ تم حفظ التسليم بنجاح','success');
@@ -993,6 +1000,27 @@ async function uploadPhoto(docId,side,dataUrl){
   const base64=compressed.replace(/^data:[^;]+;base64,/,'');
   const mimeType=compressed.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
   return apiPost({action:'uploadPhoto',docId,side,base64,mimeType});
+}
+
+// رفع مع إعادة محاولة + إرجاع تفاصيل الخطأ بدل إخفائه
+async function uploadPhotoWithRetry(docId, side, dataUrl, maxRetries=2){
+  let lastError = null;
+  for(let attempt=0; attempt<=maxRetries; attempt++){
+    try{
+      const result = await uploadPhoto(docId, side, dataUrl);
+      if(result && result.success){
+        console.log(`✅ رفع ${side} نجح، محاولة ${attempt+1}:`, result);
+        return {success:true, url: result.url};
+      }
+      lastError = result?.error || 'استجابة غير متوقعة من الخادم';
+      console.warn(`⚠️ محاولة ${attempt+1} لـ ${side} فشلت:`, lastError);
+    }catch(e){
+      lastError = e.message;
+      console.warn(`⚠️ محاولة ${attempt+1} لـ ${side} استثناء:`, e);
+    }
+    if(attempt < maxRetries) await new Promise(r=>setTimeout(r, 800));
+  }
+  return {success:false, error: lastError};
 }
 
 async function submitReceive(){
@@ -1522,7 +1550,28 @@ function copyCode(){
 }
 
 async function apiGet(action){const r=await fetch(`${sheetUrl}?action=${action}&t=${Date.now()}`);return r.json();}
-async function apiPost(body){const r=await fetch(sheetUrl,{method:'POST',body:JSON.stringify(body)});const d=await r.json();if(d.error)throw new Error(d.error);return d;}
+async function apiPost(body){
+  let r;
+  try{
+    r = await fetch(sheetUrl,{method:'POST',body:JSON.stringify(body)});
+  }catch(networkErr){
+    console.error('خطأ شبكة في apiPost:', networkErr);
+    throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت أو الرابط');
+  }
+  const text = await r.text();
+  let d;
+  try{
+    d = JSON.parse(text);
+  }catch(parseErr){
+    console.error('استجابة غير صالحة من Apps Script:', text.slice(0,500));
+    throw new Error('استجابة غير متوقعة من الخادم (تحقق من Console)');
+  }
+  if(d.error){
+    console.error('خطأ من Apps Script:', d.error);
+    throw new Error(d.error);
+  }
+  return d;
+}
 
 function genId(){const n=new Date();return 'HD-'+n.getFullYear()+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0')+'-'+Math.floor(1000+Math.random()*9000);}
 function showLoading(m){document.getElementById('loadingMsg').textContent=m;document.getElementById('loadingOverlay').classList.add('show');}

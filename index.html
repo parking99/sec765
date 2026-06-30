@@ -724,7 +724,7 @@ const GATES = [
   {id:'gate3',    name:'بوابة 3',      num:'3', guard:true},
   {id:'gate5',    name:'بوابة 5',      num:'5', guard:true},
   {id:'gate6',    name:'بوابة 6',      num:'6', guard:true},
-  {id:'visitors', name:'مبنى الزوار', num:'🏢', guard:false},
+  {id:'visitors', name:'مبنى الزوار', num:'V', guard:false},
 ];
 const DEFAULT_TYPES = ['لابتوب / Laptop','جوال / Mobile Phone','تابلت / Tablet',
   'طابعة / Printer','جهاز مكتبي / Desktop PC','شاشة / Monitor',
@@ -1156,7 +1156,8 @@ function buildCertHTML(mode, forPDF){
   const photoCell=(src,label)=> src
     ? `<td width="50%" style="padding:4px;vertical-align:top;">
         <div style="border-radius:10px;overflow:hidden;border:2px solid #1565C0;box-shadow:0 2px 8px rgba(21,101,192,.15);">
-          <img src="${src}" style="width:100%;height:145px;object-fit:cover;display:block;" crossorigin="anonymous">
+          <img src="${src}" style="width:100%;height:145px;object-fit:cover;display:block;background:#F4F8FC;" crossorigin="anonymous" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';this.parentElement.style.height='175px';">
+          <div style="width:100%;height:145px;display:none;align-items:center;justify-content:center;background:#FFF8E1;color:#7A5800;font-size:11px;font-family:${F};">⚠️ تعذّر تحميل الصورة</div>
           <div style="background:#0B2A5A;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px;font-family:${F};">${label}</div>
         </div>
       </td>`

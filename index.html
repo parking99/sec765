@@ -729,7 +729,7 @@ const sigs = {};
   renderGates('gatesGrid', false);
   renderGates('deliverGatesGrid', true);
   initSig('d'); initSig('r');
-  refreshData();
+  refreshData(true);
   startAutoRefresh();
 })();
 
@@ -845,7 +845,7 @@ function selectDeliverGate(gid){
   const el=document.getElementById('deliverGatesGrid_'+gid);if(el)el.classList.add('active');
 }
 
-function openReceiveForm(docId){
+async function openReceiveForm(docId){
   const r=allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
   if(!r){showToast('❌ لم يُعثر على السجل','error');return;}
   if(String(r['الحالة'])!=='معلقة'){
@@ -869,17 +869,30 @@ function openReceiveForm(docId){
   const toThumb=url=>{const m=url.match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`:url;};
   const fp=r['صورة_الأمام']||'',bp=r['صورة_الخلف']||'';
   const ph=document.getElementById('r_existingPhotos');
-  if(fp||bp){
-    const fpT=fp?toThumb(fp):'',bpT=bp?toThumb(bp):'';
+  const renderPhotos=(fSrc,bSrc)=>{
+    if(!fSrc&&!bSrc){ph.innerHTML='';return;}
     ph.innerHTML=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px">📷 صور الجهاز</div>
     <div class="drive-photos">
-      ${fpT?`<div class="drive-photo" onclick="openLightbox('${fpT}')"><img src="${fpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الأمام</div></div>`:''}
-      ${bpT?`<div class="drive-photo" onclick="openLightbox('${bpT}')"><img src="${bpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الخلف</div></div>`:''}
+      ${fSrc?`<div class="drive-photo" onclick="openLightbox('${fSrc}')"><img src="${fSrc}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الأمام</div></div>`:''}
+      ${bSrc?`<div class="drive-photo" onclick="openLightbox('${bSrc}')"><img src="${bSrc}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الخلف</div></div>`:''}
     </div>`;
-  } else ph.innerHTML='';
+  };
+  // عرض فوري بأفضل ما هو متاح
+  const fpQuick = fp ? (fp.startsWith('data:')?fp:toThumb(fp)) : '';
+  const bpQuick = bp ? (bp.startsWith('data:')?bp:toThumb(bp)) : '';
+  renderPhotos(fpQuick, bpQuick);
   currentCertId=docId;
   showPage('receive');
   showToast('📋 تم تحميل بيانات العهدة');
+
+  // تحويل روابط Drive القديمة إلى base64 بالخلفية لضمان ظهورها بشكل موثوق
+  if((fp && !fp.startsWith('data:')) || (bp && !bp.startsWith('data:'))){
+    let fFinal = fpQuick, bFinal = bpQuick;
+    if(fp && !fp.startsWith('data:')){ const b=await fetchImgBase64(fp); if(b) fFinal=b; }
+    if(bp && !bp.startsWith('data:')){ const b=await fetchImgBase64(bp); if(b) bFinal=b; }
+    // أعد الرسم فقط لو ما زلنا بنفس السجل
+    if(currentCertId === docId) renderPhotos(fFinal, bFinal);
+  }
 }
 
 const empTimers={};
@@ -1245,36 +1258,36 @@ function buildCertHTML(mode, forPDF){
   const badgeStyle=`background:${typeBg};border:1.5px solid ${typeBorder};color:${typeColor};padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;font-family:${F};`;
 
   return `
-<div style="${BASE}width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.13);background:#fff;">
+<div style="${BASE}width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.13);background:#fff;border:1px solid #E2E9F0;">
 
   <!-- هيدر -->
-  <div style="position:relative;min-height:150px;overflow:hidden;background:linear-gradient(150deg,#C8E8F8 0%,#9DCEED 35%,#B5E3F2 55%,#E4F4FB 80%,#fff 100%);padding:16px 18px;">
+  <div style="position:relative;min-height:138px;overflow:hidden;background:linear-gradient(150deg,#C8E8F8 0%,#9DCEED 35%,#B5E3F2 55%,#E4F4FB 80%,#fff 100%);padding:18px 20px 16px;">
     <!-- رقم البوابة watermark -->
-    <div style="position:absolute;left:8px;top:-10px;font-size:148px;font-weight:800;color:rgba(21,101,192,.09);line-height:1;pointer-events:none;font-family:Arial,sans-serif;z-index:0;">${gateNum}</div>
+    <div style="position:absolute;left:6px;top:-14px;font-size:140px;font-weight:800;color:rgba(21,101,192,.08);line-height:1;pointer-events:none;font-family:Arial,sans-serif;z-index:0;">${gateNum}</div>
     <!-- شعار — نص فقط بدون SVG -->
-    <div style="position:absolute;top:12px;left:12px;background:rgba(21,101,192,.1);border:1px solid rgba(21,101,192,.25);border-radius:8px;padding:4px 10px;font-family:${F};font-size:10px;font-weight:700;color:#0B2A5A;z-index:2;">نظام العهد الأمنية</div>
+    <div style="position:absolute;top:14px;left:14px;background:rgba(21,101,192,.1);border:1px solid rgba(21,101,192,.25);border-radius:8px;padding:4px 11px;font-family:${F};font-size:10px;font-weight:700;color:#0B2A5A;z-index:2;">نظام العهد الأمنية</div>
     <!-- بادج النوع -->
-    <div style="position:absolute;top:12px;right:12px;${badgeStyle}z-index:2;">${isD?'📤 ':' 📥 '}${typeLabel}</div>
+    <div style="position:absolute;top:14px;right:14px;${badgeStyle}z-index:2;">${isD?'📤 ':'📥 '}${typeLabel}</div>
     <!-- اسم البوابة -->
-    <div style="position:relative;z-index:2;margin-top:58px;">
-      <div style="${BASE}font-size:32px;font-weight:800;color:#0B2A5A;line-height:1.1;margin-bottom:2px;">${gate}</div>
-      <div style="${BASE}font-size:11px;color:rgba(11,42,90,.5);">نظام إدارة العهد الأمنية</div>
+    <div style="position:relative;z-index:2;margin-top:54px;">
+      <div style="${BASE}font-size:30px;font-weight:800;color:#0B2A5A;line-height:1.15;margin-bottom:3px;">${gate}</div>
+      <div style="${BASE}font-size:11px;color:rgba(11,42,90,.5);font-weight:500;">نظام إدارة العهد الأمنية</div>
     </div>
   </div>
 
   <!-- شريط الوثيقة -->
-  <div style="background:#0B2A5A;padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
-    <span style="${BASE}color:#00AEEF;font-size:12px;font-weight:700;letter-spacing:.5px;">${certId}</span>
+  <div style="background:#0B2A5A;padding:9px 20px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="${BASE}color:#00AEEF;font-size:12px;font-weight:700;letter-spacing:.6px;">${certId}</span>
     <span style="color:rgba(255,255,255,.65);font-size:11px;font-family:${F};">${dStr} — ${tStr}</span>
   </div>
 
   <!-- جسم الشهادة -->
-  <div style="${BASE}padding:16px 18px 6px;">
+  <div style="${BASE}padding:18px 20px 8px;">
 
     <!-- بيانات الجهاز -->
-    <div style="${BASE}margin-bottom:14px;">
+    <div style="${BASE}margin-bottom:16px;">
       ${sec('بيانات الجهاز')}
-      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+      <table width="100%" cellspacing="9" cellpadding="0" border="0"><tr>
         <td width="50%">${field('نوع الجهاز', devType, '#F4F8FC', '#00AEEF')}</td>
         <td width="50%">${serial?field('الرقم التسلسلي', serial, '#F4F8FC', '#00AEEF'):''}</td>
       </tr></table>
@@ -1284,56 +1297,56 @@ function buildCertHTML(mode, forPDF){
     ${photosHTML}
 
     <!-- بيانات المُسلِّم -->
-    <div style="${BASE}margin-bottom:14px;">
+    <div style="${BASE}margin-bottom:16px;">
       ${sec('بيانات المُسلِّم')}
-      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+      <table width="100%" cellspacing="9" cellpadding="0" border="0"><tr>
         <td width="50%">${field('الرقم الوظيفي', senderEmpId, '#F4F8FC', '#1565C0')}</td>
         <td width="50%">${field('الاسم', senderEmpName, '#F4F8FC', '#1565C0')}</td>
       </tr></table>
     </div>
 
     <!-- بيانات المُستلِم -->
-    ${!isD?`<div style="${BASE}margin-bottom:14px;">
+    ${!isD?`<div style="${BASE}margin-bottom:16px;">
       ${sec('بيانات المُستلِم')}
-      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+      <table width="100%" cellspacing="9" cellpadding="0" border="0"><tr>
         <td width="50%">${field('الرقم الوظيفي', receiverEmpId, '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
         <td width="50%">${field('الاسم', receiverEmpName, '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
       </tr></table>
     </div>`:''}
 
     <!-- إقرار -->
-    <div style="${BASE}background:${typeBg};border:2px solid ${typeBorder};border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-      <div style="${BASE}font-size:12px;font-weight:700;color:${typeColor};margin-bottom:5px;">${isD?'اقرار التسليم':'اقرار الاستلام'}</div>
-      <div style="${BASE}font-size:12px;color:${typeColor};line-height:1.9;">${confirmText}</div>
+    <div style="${BASE}background:${typeBg};border:1.5px solid ${typeBorder};border-radius:10px;padding:13px 15px;margin-bottom:16px;">
+      <div style="${BASE}font-size:12px;font-weight:700;color:${typeColor};margin-bottom:6px;">${isD?'إقرار التسليم':'إقرار الاستلام'}</div>
+      <div style="${BASE}font-size:12px;color:${typeColor};line-height:1.95;">${confirmText}</div>
     </div>
 
     <!-- قائمة التحقق -->
-    <div style="${BASE}margin-bottom:14px;">
+    <div style="${BASE}margin-bottom:16px;">
       ${sec(isD?'حالة الجهاز عند التسليم':'تأكيدات الاستلام')}
       <table width="100%" cellspacing="0" cellpadding="0" border="0">${checksRows}</table>
     </div>
 
     <!-- ملاحظات -->
-    ${notes?`<div style="${BASE}margin-bottom:14px;">
+    ${notes?`<div style="${BASE}margin-bottom:16px;">
       ${sec('ملاحظات')}
-      <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:10px 13px;font-size:12px;color:#0B2A5A;line-height:1.8;border-right:3px solid #C8960C;">${notes}</div>
+      <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:11px 14px;font-size:12px;color:#0B2A5A;line-height:1.85;border-right:3px solid #C8960C;">${notes}</div>
     </div>`:''}
 
   </div>
 
   <!-- التوقيع -->
-  <div style="border-top:2px dashed #D0DCE8;background:#F8FBFD;padding:14px 18px;">
+  <div style="border-top:1.5px dashed #D0DCE8;background:#F8FBFD;padding:16px 20px;">
     <table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
-      <td width="50%" style="text-align:center;vertical-align:bottom;padding:0 8px;">
-        ${hasSig?`<img src="${sigImg}" style="max-height:55px;margin-bottom:5px;display:block;margin:0 auto 5px;" alt="sig">`:'<div style="height:55px;"></div>'}
-        <div style="border-top:2px solid #0B2A5A;width:130px;margin:0 auto 4px;"></div>
+      <td width="50%" style="text-align:center;vertical-align:bottom;padding:0 10px;">
+        ${hasSig?`<img src="${sigImg}" style="max-height:52px;margin-bottom:6px;display:block;margin:0 auto 6px;" alt="sig">`:'<div style="height:52px;"></div>'}
+        <div style="border-top:2px solid #0B2A5A;width:130px;margin:0 auto 5px;"></div>
         <div style="${BASE}font-size:12px;color:#0B2A5A;font-weight:700;text-align:center;">${signerName}</div>
         <div style="${BASE}font-size:10px;color:#6B7A8D;text-align:center;margin-top:2px;">${signerRole}</div>
       </td>
-      <td width="50%" style="vertical-align:middle;padding:0 8px;">
-        <div style="${BASE}background:#EDF4FA;border-radius:10px;padding:12px 14px;border-right:3px solid #00AEEF;">
-          <div style="${BASE}font-size:11px;color:#0B2A5A;font-weight:700;margin-bottom:7px;">وثيقة رسمية معتمدة</div>
-          <div style="${BASE}font-size:10px;color:#6B7A8D;line-height:2.1;">
+      <td width="50%" style="vertical-align:middle;padding:0 10px;">
+        <div style="${BASE}background:#EDF4FA;border-radius:10px;padding:13px 15px;border-right:3px solid #00AEEF;">
+          <div style="${BASE}font-size:11px;color:#0B2A5A;font-weight:700;margin-bottom:8px;">وثيقة رسمية معتمدة</div>
+          <div style="${BASE}font-size:10px;color:#6B7A8D;line-height:2.2;">
             <div>التاريخ: ${dStr}</div>
             <div>الوقت: ${tStr}</div>
             <div>الموقع: ${gate}</div>
@@ -1344,8 +1357,8 @@ function buildCertHTML(mode, forPDF){
   </div>
 
   <!-- فوتر -->
-  <div style="background:linear-gradient(135deg,#071830,#0B2A5A);padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
-    <span style="${BASE}font-size:9px;color:rgba(255,255,255,.4);">نظام إدارة العهد الأمنية</span>
+  <div style="background:linear-gradient(135deg,#071830,#0B2A5A);padding:9px 20px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="${BASE}font-size:9px;color:rgba(255,255,255,.45);">نظام إدارة العهد الأمنية</span>
     <span style="${BASE}font-size:11px;color:#00AEEF;font-weight:700;">${certId}</span>
   </div>
 
@@ -1379,17 +1392,40 @@ function previewCert(mode){
 
 // ── عرض تفاصيل سجل من نتائج البحث (قراءة فقط، بلا تعديل) ──
 let viewingRecordId = null;
-function viewRecordDetails(docId){
+async function viewRecordDetails(docId){
   const r = allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
   if(!r){ showToast('❌ لم يُعثر على السجل','error'); return; }
   viewingRecordId = docId;
-  document.getElementById('certContent').innerHTML = buildViewOnlyCert(r);
-  const dlBtn=document.getElementById('dlBtn'); if(dlBtn)dlBtn.style.display='flex';
+
   const overlay=document.getElementById('overlay');
+  const dlBtn=document.getElementById('dlBtn'); if(dlBtn)dlBtn.style.display='flex';
+
+  // اعرض البطاقة فوراً بأي صور متاحة (base64 تعمل فوراً، روابط Drive قد تفشل لحظياً)
+  document.getElementById('certContent').innerHTML = buildViewOnlyCert(r);
   overlay.classList.add('show');
   overlay.scrollTop=0;
   const modal=overlay.querySelector('.modal');
   if(modal)modal.scrollTop=0;
+
+  // إذا كانت الصور روابط Drive قديمة (مو base64)، حوّلها بالخلفية واستبدلها في العرض
+  const fUrl = r['صورة_الأمام']||'';
+  const bUrl = r['صورة_الخلف']||'';
+  const needsConv = (fUrl && !fUrl.startsWith('data:')) || (bUrl && !bUrl.startsWith('data:'));
+  if(needsConv){
+    const recCopy = Object.assign({}, r);
+    if(fUrl && !fUrl.startsWith('data:')){
+      const b64 = await fetchImgBase64(fUrl);
+      if(b64) recCopy['صورة_الأمام'] = b64;
+    }
+    if(bUrl && !bUrl.startsWith('data:')){
+      const b64 = await fetchImgBase64(bUrl);
+      if(b64) recCopy['صورة_الخلف'] = b64;
+    }
+    // أعد الرسم فقط إذا المودال لا يزال مفتوحاً على نفس السجل
+    if(viewingRecordId === docId && overlay.classList.contains('show')){
+      document.getElementById('certContent').innerHTML = buildViewOnlyCert(recCopy);
+    }
+  }
 }
 
 // بناء بطاقة عرض-فقط من بيانات سجل محفوظ (بدون الاعتماد على نموذج مفتوح أو توقيع حي)
@@ -1710,14 +1746,20 @@ function startAutoRefresh(){clearInterval(refreshTimer);refreshTimer=setInterval
 async function silentRefresh(){
   try{const d=await apiGet('getAll');if(d.data){allRecords=d.data;updateCounts();if(selectedGate)refreshGatePanel();}}catch(_){}
 }
-async function refreshData(){
-  showLoading('جاري التحديث...');
+// تحديث يدوي بالخلفية — بدون شاشة تحميل كاملة، فقط مؤشر بسيط على الزر نفسه
+async function refreshData(silent){
+  const btn = document.querySelector('.btn-sm[onclick="refreshData()"]');
+  if(btn && !silent){ btn.style.opacity='0.5'; btn.textContent='⏳ جاري التحديث'; }
   try{
     const d=await apiGet('getAll');
     if(d.data){allRecords=d.data;updateCounts();if(selectedGate)refreshGatePanel();}
     await loadDeviceTypes();
-  }catch(e){showToast('❌ تعذر التحديث: '+e.message,'error');}
-  finally{hideLoading();}
+    if(!silent) showToast('✅ تم التحديث','success');
+  }catch(e){
+    if(!silent) showToast('❌ تعذر التحديث: '+e.message,'error');
+  }finally{
+    if(btn){ btn.style.opacity=''; btn.textContent='🔄 تحديث'; }
+  }
 }
 
 function saveUrl(){

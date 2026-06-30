@@ -1458,13 +1458,12 @@ async function downloadPDF(){
     document.body.appendChild(wrapper);
 
     await document.fonts.ready;
-    await new Promise(r=>setTimeout(r,400));
-
-    const totalH = wrapper.scrollHeight + 40;
-    wrapper.style.height = totalH + 'px';
-    await new Promise(r=>setTimeout(r,200));
+    await new Promise(r=>setTimeout(r,500));
 
     showLoading('جاري تحويل إلى PDF...');
+
+    // نقيس الارتفاع الحقيقي للمحتوى مباشرة قبل الرسم (بدون فرض height يدوياً)
+    const realHeight = Math.ceil(wrapper.getBoundingClientRect().height);
 
     const canvas = await html2canvas(wrapper, {
       scale: 2,
@@ -1473,7 +1472,9 @@ async function downloadPDF(){
       backgroundColor: '#ffffff',
       scrollX: 0, scrollY: 0,
       width: 794,
+      height: realHeight,
       windowWidth: 794,
+      windowHeight: realHeight,
       logging: false,
       imageTimeout: 0,
       onclone:(doc)=>{
@@ -1491,7 +1492,8 @@ async function downloadPDF(){
     const ih = (canvas.height * pw) / canvas.width;
 
     let y = 0;
-    while(y < ih){
+    const epsilon = 2; // مم — هامش صغير لتفادي صفحة فاضية إضافية
+    while(y < ih - epsilon){
       if(y > 0) pdf.addPage();
       pdf.addImage(imgData,'JPEG',0,-y,pw,ih);
       y += ph;

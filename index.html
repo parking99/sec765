@@ -619,30 +619,10 @@ function getDeviceTypes() {
   return out({types});
 }
 function uploadPhoto(d) {
-  // حفظ الصورة كـ base64 مضغوطة مباشرة في الـ Sheet (يحل مشكلة CORS في PDF)
-  // نضغطها أولاً لتصغير الحجم
-  const maxB64Len = 200000; // ~150KB كافية للعرض
-  let b64 = d.base64 || '';
-  // إذا كانت كبيرة جداً، نخزّن رابط Drive بدلاً
-  let urlToStore = 'data:' + (d.mimeType||'image/jpeg') + ';base64,' + b64;
-
-  if(urlToStore.length > maxB64Len){
-    // ارفع لـ Drive واحفظ الرابط
-    try{
-      const folders = DriveApp.getFoldersByName(DRIVE_FOLDER);
-      const folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(DRIVE_FOLDER);
-      const blob = Utilities.newBlob(
-        Utilities.base64Decode(d.base64),
-        d.mimeType||'image/jpeg',
-        d.docId+'_'+d.side+'.jpg'
-      );
-      const file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE, DriveApp.Permission.VIEW);
-      urlToStore = 'https://drive.google.com/thumbnail?id='+file.getId()+'&sz=w800';
-    }catch(e){
-      urlToStore = ''; // فشل الرفع
-    }
-  }
+  // نخزّن الصورة دائماً كـ base64 مباشرة في الـ Sheet — يحل مشكلة CORS نهائياً
+  // المتصفح يضغط الصورة قبل الإرسال لضمان حجم صغير وآمن
+  const b64 = d.base64 || '';
+  const urlToStore = 'data:' + (d.mimeType||'image/jpeg') + ';base64,' + b64;
 
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
   const rows = sh.getDataRange().getValues();
@@ -651,7 +631,7 @@ function uploadPhoto(d) {
   for (let i=1; i<rows.length; i++) {
     if (String(rows[i][0]) === String(d.docId)) {
       sh.getRange(i+1,col).setValue(urlToStore);
-      return out({success:true, url: urlToStore});
+      return out({success:true, size: urlToStore.length});
     }
   }
   return out({error:'record not found'});
@@ -994,11 +974,26 @@ function compressImg(dataUrl, maxW=800, quality=0.75){
   });
 }
 
+// ضغط الصورة بشكل تكراري حتى تصل لحجم آمن (أقل من 130KB كـ base64)
+async function compressImgAuto(dataUrl, targetMaxChars=130000){
+  let w = 700, q = 0.65;
+  let result = await compressImg(dataUrl, w, q);
+  let tries = 0;
+  while(result.length > targetMaxChars && tries < 5){
+    if(q > 0.4) q -= 0.1;
+    else w = Math.round(w*0.8);
+    result = await compressImg(dataUrl, w, q);
+    tries++;
+  }
+  return result;
+}
+
 async function uploadPhoto(docId,side,dataUrl){
-  // اضغط الصورة أولاً
-  const compressed = await compressImg(dataUrl, 800, 0.72);
+  // اضغط الصورة بشكل تكراري حتى تضمن حجم آمن لتخزينها كـ base64 مباشرة
+  const compressed = await compressImgAuto(dataUrl);
   const base64=compressed.replace(/^data:[^;]+;base64,/,'');
   const mimeType=compressed.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
+  console.log(`📦 حجم صورة ${side} بعد الضغط: ${(base64.length/1024).toFixed(1)} KB`);
   return apiPost({action:'uploadPhoto',docId,side,base64,mimeType});
 }
 

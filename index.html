@@ -1443,27 +1443,34 @@ async function downloadPDF(){
     deliverImgs.front = savedFront;
     deliverImgs.back  = savedBack;
 
-    // ── wrapper مخفي ──
+    // ── wrapper مرئي فعلياً لكن خارج نطاق رؤية المستخدم (يتجنب مشاكل opacity:0 مع html2canvas) ──
     const wrapper = document.createElement('div');
     wrapper.style.cssText = [
-      'position:fixed','left:-9999px','top:0',
+      'position:absolute','top:0','left:0',
       'width:794px','background:#fff',
       'font-family:"IBM Plex Sans Arabic",Arial,sans-serif',
       'direction:rtl','unicode-bidi:embed',
       'padding:16px','box-sizing:border-box',
-      'z-index:9999','pointer-events:none',
-      'opacity:0'
+      'z-index:-99999'
     ].join(';');
     wrapper.innerHTML = certHTML;
-    document.body.appendChild(wrapper);
+    document.body.insertBefore(wrapper, document.body.firstChild);
+
+    // امنع تمرير الصفحة بسبب العنصر الكبير
+    document.body.style.overflow = 'hidden';
 
     await document.fonts.ready;
-    await new Promise(r=>setTimeout(r,500));
+    await new Promise(r=>setTimeout(r,600));
 
     showLoading('جاري تحويل إلى PDF...');
 
-    // نقيس الارتفاع الحقيقي للمحتوى مباشرة قبل الرسم (بدون فرض height يدوياً)
-    const realHeight = Math.ceil(wrapper.getBoundingClientRect().height);
+    // أعد القياس بعد التأكد من اكتمال الرسم
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const realHeight = Math.max(
+      wrapper.scrollHeight,
+      wrapper.offsetHeight,
+      Math.ceil(wrapper.getBoundingClientRect().height)
+    );
 
     const canvas = await html2canvas(wrapper, {
       scale: 2,
@@ -1471,19 +1478,23 @@ async function downloadPDF(){
       allowTaint: true,
       backgroundColor: '#ffffff',
       scrollX: 0, scrollY: 0,
+      x: 0, y: 0,
       width: 794,
       height: realHeight,
       windowWidth: 794,
       windowHeight: realHeight,
       logging: false,
       imageTimeout: 0,
-      onclone:(doc)=>{
+      removeContainer: true,
+      onclone:(doc, el)=>{
         doc.documentElement.setAttribute('dir','rtl');
         doc.documentElement.setAttribute('lang','ar');
+        el.style.zIndex = '0';
       }
     });
 
     document.body.removeChild(wrapper);
+    document.body.style.overflow = '';
 
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
     const pdf = new jsPDF({orientation:'p', unit:'mm', format:'a4'});

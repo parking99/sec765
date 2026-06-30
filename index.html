@@ -500,10 +500,10 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="modal-topbar">
-      <button class="close-btn" onclick="document.getElementById('overlay').classList.remove('show')">
+      <button class="close-btn" onclick="closeCertModal()">
         <span style="font-size:18px;font-weight:900;line-height:1">✕</span> رجوع
       </button>
-      <button class="dl-btn" onclick="downloadPDF()">📄 تحميل PDF</button>
+      <button class="dl-btn" id="dlBtn" onclick="downloadPDF()">📄 تحميل PDF</button>
     </div>
     <div id="certContent"></div>
   </div>
@@ -764,7 +764,7 @@ function showGatesForReceive(){
   document.getElementById('tab-receive').classList.add('active');
   showToast('📥 اختر البوابة لعرض العهد المعلقة');
 }
-function startDeliver(){
+function resetDeliverForm(keepGate){
   currentCertId=null; deliverImgs={front:null,back:null}; clearSig('d');
   ['front','back'].forEach(side=>{
     const z=document.getElementById('d_'+side+'Zone');
@@ -774,9 +774,15 @@ function startDeliver(){
   ['d_serial','d_empId','d_empName','d_notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const ds=document.getElementById('d_deviceType');if(ds)ds.selectedIndex=0;
   document.getElementById('d_empBadge').style.display='none';
-  document.querySelectorAll('#deliverGatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
-  deliverGate=null;
-  if(selectedGate){deliverGate=selectedGate;const el=document.getElementById('deliverGatesGrid_'+selectedGate);if(el)el.classList.add('active');}
+  if(!keepGate){
+    document.querySelectorAll('#deliverGatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
+    deliverGate=null;
+    if(selectedGate){deliverGate=selectedGate;const el=document.getElementById('deliverGatesGrid_'+selectedGate);if(el)el.classList.add('active');}
+  }
+}
+
+function startDeliver(){
+  resetDeliverForm(false);
   showPage('deliver');
 }
 
@@ -824,13 +830,13 @@ function refreshGatePanel(){
   w.innerHTML=`<table class="pending-table"><thead><tr>
     <th>رقم الوثيقة</th><th>الجهاز</th><th>المُسلَّم له</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th>
   </tr></thead><tbody>
-  ${recs.map(r=>`<tr>
+  ${recs.map(r=>`<tr style="cursor:pointer;" onclick="viewRecordDetails('${r['رقم_الوثيقة']}')">
     <td style="font-weight:700;color:#C8960C;font-size:11px">${r['رقم_الوثيقة']||'—'}</td>
     <td>${r['نوع_الجهاز']||'—'}</td>
     <td>${r['اسم_موظف_المسلم_له']||'—'}<br><span style="font-size:10px;color:var(--gray)">${r['رقم_موظف_المسلم_له']||''}</span></td>
     <td style="font-size:11px;color:var(--gray)">${r['التاريخ']||'—'}</td>
     <td><span class="badge-p">⏳ معلقة</span></td>
-    <td><button class="btn-rcv" onclick="openReceiveForm('${r['رقم_الوثيقة']}')">استلام</button></td>
+    <td><button class="btn-rcv" onclick="event.stopPropagation();openReceiveForm('${r['رقم_الوثيقة']}')">استلام</button></td>
   </tr>`).join('')}</tbody></table>`;
 }
 function selectDeliverGate(gid){
@@ -842,6 +848,11 @@ function selectDeliverGate(gid){
 function openReceiveForm(docId){
   const r=allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
   if(!r){showToast('❌ لم يُعثر على السجل','error');return;}
+  if(String(r['الحالة'])!=='معلقة'){
+    showToast('⚠️ هذه العهدة مُستلمة بالفعل ولا يمكن تعديلها — اضغط لعرض التفاصيل فقط','error');
+    viewRecordDetails(docId);
+    return;
+  }
   document.getElementById('r_certId').value     = r['رقم_الوثيقة']||'';
   document.getElementById('r_location').value   = r['الموقع']||'';
   document.getElementById('r_deliverDate').value = (r['التاريخ']||'')+' '+(r['الوقت']||'');
@@ -953,6 +964,7 @@ async function submitDeliver(){
     currentCertId=certId; currentMode='deliver';
     await silentRefresh();
     showToast('✅ تم حفظ التسليم بنجاح','success');
+    pendingFormReset = true;
     previewCert('deliver');
   }catch(e){showToast('❌ فشل: '+e.message,'error');}
   finally{hideLoading();}
@@ -1071,12 +1083,12 @@ function _doSearch(val){
         ${fpT?`<div class="drive-photo" onclick="openLightbox('${fpT}')"><img src="${fpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر</div>'"><div class="dp-lbl">الأمام</div></div>`:''}
         ${bpT?`<div class="drive-photo" onclick="openLightbox('${bpT}')"><img src="${bpT}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر</div>'"><div class="dp-lbl">الخلف</div></div>`:''}
       </div>`:'';
-      return `<div class="rec-card"><div class="rec-card-top">
+      return `<div class="rec-card" style="cursor:pointer;" onclick="viewRecordDetails('${r['رقم_الوثيقة']}')"><div class="rec-card-top">
         <div><span style="font-weight:700;color:#C8960C;font-size:12px">${r['رقم_الوثيقة']||'—'}</span>
         <span style="margin-right:8px;font-size:11px;color:var(--gray)">${r['التاريخ']||''}</span></div>
         <div style="display:flex;align-items:center;gap:8px">
           ${isPend?'<span class="badge-p">⏳ معلقة</span>':'<span class="badge-d">✅ مُستلمة</span>'}
-          ${isPend?`<button class="btn-rcv" onclick="openReceiveForm('${r['رقم_الوثيقة']}')">استلام</button>`:''}
+          ${isPend?`<button class="btn-rcv" onclick="event.stopPropagation();openReceiveForm('${r['رقم_الوثيقة']}')">استلام</button>`:''}
         </div></div>
         <div class="rec-card-body"><div class="rec-grid">
           <div class="rec-field"><div class="rf-lbl">الجهاز</div><div class="rf-val">${r['نوع_الجهاز']||'—'}</div></div>
@@ -1084,7 +1096,9 @@ function _doSearch(val){
           ${r['الرقم_التسلسلي']?`<div class="rec-field"><div class="rf-lbl">Serial</div><div class="rf-val">${r['الرقم_التسلسلي']}</div></div>`:''}
           ${r['اسم_موظف_المستلم']?`<div class="rec-field"><div class="rf-lbl">المستلِم</div><div class="rf-val" style="color:var(--green)">${r['اسم_موظف_المستلم']}</div></div>`:''}
           ${r['تاريخ_الاستلام']?`<div class="rec-field"><div class="rf-lbl">تاريخ الاستلام</div><div class="rf-val" style="color:var(--green)">${r['تاريخ_الاستلام']}</div></div>`:''}
-        </div>${photos}</div></div>`;
+        </div>${photos}
+        <div style="text-align:center;margin-top:8px;font-size:10px;color:var(--gray);">👆 اضغط لعرض التفاصيل الكاملة</div>
+        </div></div>`;
     }).join('');
     return `<div class="emp-profile">
       <div class="ep-name">${emp.name||'—'}</div>
@@ -1338,15 +1352,168 @@ function buildCertHTML(mode, forPDF){
 </div>`;
 }
 
+// يُفعَّل بعد نجاح التسليم — يفرّغ النموذج تلقائياً عند إغلاق معاينة الشهادة
+let pendingFormReset = false;
+
+function closeCertModal(){
+  document.getElementById('overlay').classList.remove('show');
+  if(pendingFormReset){
+    pendingFormReset = false;
+    resetDeliverForm(true); // نحافظ على نفس البوابة المختارة لتسهيل تسليم متتابع لنفس الموقع
+    showToast('✨ النموذج جاهز لتسليم جديد');
+  }
+}
+
 function previewCert(mode){
   currentMode=mode;
+  viewingRecordId=null;
   document.getElementById('certContent').innerHTML=buildCertHTML(mode,false);
+  const dlBtn=document.getElementById('dlBtn'); if(dlBtn)dlBtn.style.display='flex';
   const overlay=document.getElementById('overlay');
   overlay.classList.add('show');
   // scroll modal to top
   overlay.scrollTop=0;
   const modal=overlay.querySelector('.modal');
   if(modal)modal.scrollTop=0;
+}
+
+// ── عرض تفاصيل سجل من نتائج البحث (قراءة فقط، بلا تعديل) ──
+let viewingRecordId = null;
+function viewRecordDetails(docId){
+  const r = allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
+  if(!r){ showToast('❌ لم يُعثر على السجل','error'); return; }
+  viewingRecordId = docId;
+  document.getElementById('certContent').innerHTML = buildViewOnlyCert(r);
+  const dlBtn=document.getElementById('dlBtn'); if(dlBtn)dlBtn.style.display='flex';
+  const overlay=document.getElementById('overlay');
+  overlay.classList.add('show');
+  overlay.scrollTop=0;
+  const modal=overlay.querySelector('.modal');
+  if(modal)modal.scrollTop=0;
+}
+
+// بناء بطاقة عرض-فقط من بيانات سجل محفوظ (بدون الاعتماد على نموذج مفتوح أو توقيع حي)
+function buildViewOnlyCert(r){
+  const isPend = String(r['الحالة'])==='معلقة';
+  const gate = r['الموقع']||'—';
+  const gObj = GATES.find(g=>g.name===gate);
+  const gateNum = gObj?gObj.num:(gate.replace(/[^\d]/g,'')||'?');
+  const certId = r['رقم_الوثيقة']||'—';
+  const devType = r['نوع_الجهاز']||'—';
+  const serial = r['الرقم_التسلسلي']||'';
+  const senderEmpId = r['رقم_موظف_المسلم_له']||'—';
+  const senderEmpName = r['اسم_موظف_المسلم_له']||'—';
+  const receiverEmpId = r['رقم_موظف_المستلم']||'';
+  const receiverEmpName = r['اسم_موظف_المستلم']||'';
+  const deliverNotes = r['ملاحظات_التسليم']||'';
+  const receiveNotes = r['ملاحظات_الاستلام']||'';
+  const photoFront = r['صورة_الأمام']||'';
+  const photoBack  = r['صورة_الخلف']||'';
+
+  const F="'IBM Plex Sans Arabic','Noto Sans Arabic',Arial,sans-serif";
+  const BASE=`font-family:${F};direction:rtl;unicode-bidi:embed;text-align:right;`;
+
+  const typeColor = isPend ? '#1565C0' : '#1A7A4A';
+  const typeBg    = isPend ? '#EBF4FC' : '#EAF5F0';
+  const typeBorder= isPend ? '#1565C0' : '#1A7A4A';
+  const statusLabel = isPend ? 'معلّقة — بانتظار الاستلام' : 'مُستلمة بالكامل';
+
+  const photoCell=(src,label)=> src
+    ? `<td width="50%" style="padding:4px;vertical-align:top;">
+        <div style="border-radius:10px;overflow:hidden;border:2px solid #1565C0;box-shadow:0 2px 8px rgba(21,101,192,.15);">
+          <img src="${src}" style="width:100%;height:145px;object-fit:cover;display:block;background:#F4F8FC;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <div style="width:100%;height:145px;display:none;align-items:center;justify-content:center;background:#FFF8E1;color:#7A5800;font-size:11px;font-family:${F};">⚠️ تعذّر تحميل الصورة</div>
+          <div style="background:#0B2A5A;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px;font-family:${F};">${label}</div>
+        </div>
+      </td>`
+    : `<td width="50%" style="padding:4px;vertical-align:top;">
+        <div style="height:175px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;font-family:${F};">لا توجد صورة</div>
+      </td>`;
+
+  const photosHTML = (photoFront||photoBack) ? `
+    <div style="${BASE}margin-bottom:16px;">
+      <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">صور الجهاز</div>
+      <table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>${photoCell(photoFront,'صورة الأمام')}${photoCell(photoBack,'صورة الخلف')}</tr></table>
+    </div>` : '';
+
+  const field=(lbl,val,bg='#F4F8FC',border='#00AEEF',valColor='#0B2A5A')=>`
+    <div style="${BASE}background:${bg};border-radius:8px;padding:9px 12px;border-right:3px solid ${border};">
+      <div style="${BASE}font-size:10px;color:#6B7A8D;font-weight:700;margin-bottom:3px;">${lbl}</div>
+      <div style="${BASE}font-size:13px;color:${valColor};font-weight:700;">${val}</div>
+    </div>`;
+  const sec=(t)=>`<div style="${BASE}font-size:10px;font-weight:700;color:#6B7A8D;padding-bottom:6px;border-bottom:2px solid #E0EAF2;margin-bottom:10px;">${t}</div>`;
+
+  return `
+<div style="${BASE}width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.13);background:#fff;">
+
+  <div style="position:relative;min-height:150px;overflow:hidden;background:linear-gradient(150deg,#C8E8F8 0%,#9DCEED 35%,#B5E3F2 55%,#E4F4FB 80%,#fff 100%);padding:16px 18px;">
+    <div style="position:absolute;left:8px;top:-10px;font-size:148px;font-weight:800;color:rgba(21,101,192,.09);line-height:1;pointer-events:none;font-family:Arial,sans-serif;z-index:0;">${gateNum}</div>
+    <div style="position:absolute;top:12px;left:12px;background:rgba(21,101,192,.1);border:1px solid rgba(21,101,192,.25);border-radius:8px;padding:4px 10px;font-family:${F};font-size:10px;font-weight:700;color:#0B2A5A;z-index:2;">نظام العهد الأمنية — عرض فقط</div>
+    <div style="position:absolute;top:12px;right:12px;background:${typeBg};border:1.5px solid ${typeBorder};color:${typeColor};padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;font-family:${F};z-index:2;">${isPend?'⏳ ':'✅ '}${statusLabel}</div>
+    <div style="position:relative;z-index:2;margin-top:58px;">
+      <div style="${BASE}font-size:32px;font-weight:800;color:#0B2A5A;line-height:1.1;margin-bottom:2px;">${gate}</div>
+      <div style="${BASE}font-size:11px;color:rgba(11,42,90,.5);">نظام إدارة العهد الأمنية</div>
+    </div>
+  </div>
+
+  <div style="background:#0B2A5A;padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="${BASE}color:#00AEEF;font-size:12px;font-weight:700;letter-spacing:.5px;">${certId}</span>
+    <span style="color:rgba(255,255,255,.65);font-size:11px;font-family:${F};">${r['التاريخ']||''} — ${r['الوقت']||''}</span>
+  </div>
+
+  <div style="${BASE}padding:16px 18px 6px;">
+
+    <div style="${BASE}margin-bottom:14px;">
+      ${sec('بيانات الجهاز')}
+      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+        <td width="50%">${field('نوع الجهاز', devType, '#F4F8FC', '#00AEEF')}</td>
+        <td width="50%">${serial?field('الرقم التسلسلي', serial, '#F4F8FC', '#00AEEF'):''}</td>
+      </tr></table>
+    </div>
+
+    ${photosHTML}
+
+    <div style="${BASE}margin-bottom:14px;">
+      ${sec('بيانات المُسلِّم')}
+      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+        <td width="50%">${field('الرقم الوظيفي', senderEmpId, '#F4F8FC', '#1565C0')}</td>
+        <td width="50%">${field('الاسم', senderEmpName, '#F4F8FC', '#1565C0')}</td>
+      </tr></table>
+    </div>
+
+    ${!isPend?`<div style="${BASE}margin-bottom:14px;">
+      ${sec('بيانات المُستلِم')}
+      <table width="100%" cellspacing="8" cellpadding="0" border="0"><tr>
+        <td width="50%">${field('الرقم الوظيفي', receiverEmpId||'—', '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
+        <td width="50%">${field('الاسم', receiverEmpName||'—', '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
+      </tr></table>
+    </div>`:`<div style="${BASE}background:${typeBg};border:2px solid ${typeBorder};border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+      <div style="${BASE}font-size:12px;color:${typeColor};line-height:1.8;">⏳ هذه العهدة لا تزال بانتظار الاستلام — لم يُحدَّد المُستلِم بعد.</div>
+    </div>`}
+
+    ${r['تاريخ_الاستلام']?`<div style="${BASE}margin-bottom:14px;">
+      ${sec('تفاصيل الاستلام')}
+      ${field('تاريخ ووقت الاستلام', r['تاريخ_الاستلام'], '#EAF5F0', '#1A7A4A', '#0A4A2A')}
+    </div>`:''}
+
+    ${deliverNotes?`<div style="${BASE}margin-bottom:14px;">
+      ${sec('ملاحظات التسليم')}
+      <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:10px 13px;font-size:12px;color:#0B2A5A;line-height:1.8;border-right:3px solid #C8960C;">${deliverNotes}</div>
+    </div>`:''}
+
+    ${receiveNotes?`<div style="${BASE}margin-bottom:14px;">
+      ${sec('ملاحظات الاستلام')}
+      <div style="${BASE}background:#EAF5F0;border-radius:8px;padding:10px 13px;font-size:12px;color:#0A4A2A;line-height:1.8;border-right:3px solid #1A7A4A;">${receiveNotes}</div>
+    </div>`:''}
+
+  </div>
+
+  <div style="background:linear-gradient(135deg,#071830,#0B2A5A);padding:8px 18px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="${BASE}font-size:9px;color:rgba(255,255,255,.4);">نظام إدارة العهد الأمنية — وضع العرض فقط</span>
+    <span style="${BASE}font-size:11px;color:#00AEEF;font-weight:700;">${certId}</span>
+  </div>
+
+</div>`;
 }
 
 // جلب صورة كـ base64 — يجرب عدة طرق لتجاوز CORS
@@ -1412,36 +1579,56 @@ async function downloadPDF(){
 
   showLoading('جاري تحضير الصور...');
   try{
-    // ── جمع الصور ──
-    let pFront = deliverImgs.front || null;
-    let pBack  = deliverImgs.back  || null;
+    let certHTML;
+    let pdfFileLabel;
 
-    // في وضع الاستلام: جلب صور من السجل
-    if(currentMode === 'receive'){
-      const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
-      if(rec){
-        const fUrl = rec['صورة_الأمام']||'';
-        const bUrl = rec['صورة_الخلف']||'';
-        // إذا كانت base64 مخزّنة مباشرة — استخدمها فوراً
-        if(fUrl.startsWith('data:')) pFront = fUrl;
-        else if(fUrl){ showLoading('جاري تحميل صورة الأمام...'); pFront = await fetchImgBase64(fUrl) || null; }
-        if(bUrl.startsWith('data:')) pBack = bUrl;
-        else if(bUrl){ showLoading('جاري تحميل صورة الخلف...'); pBack = await fetchImgBase64(bUrl) || null; }
+    if(viewingRecordId){
+      // ── وضع العرض من نتائج البحث: نبني من بيانات السجل مباشرة، نحوّل صور Drive القديمة إن وُجدت ──
+      const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(viewingRecordId));
+      if(!rec){ throw new Error('السجل غير موجود'); }
+      const recCopy = Object.assign({}, rec);
+      const fUrl = recCopy['صورة_الأمام']||'';
+      const bUrl = recCopy['صورة_الخلف']||'';
+      if(fUrl && !fUrl.startsWith('data:')){
+        showLoading('جاري تحميل صورة الأمام...');
+        recCopy['صورة_الأمام'] = await fetchImgBase64(fUrl) || fUrl;
       }
+      if(bUrl && !bUrl.startsWith('data:')){
+        showLoading('جاري تحميل صورة الخلف...');
+        recCopy['صورة_الخلف'] = await fetchImgBase64(bUrl) || bUrl;
+      }
+      showLoading('جاري بناء الوثيقة...');
+      certHTML = buildViewOnlyCert(recCopy);
+      pdfFileLabel = 'سجل_' + (viewingRecordId||'');
+    } else {
+      // ── جمع الصور لوضع التسليم/الاستلام النشط ──
+      let pFront = deliverImgs.front || null;
+      let pBack  = deliverImgs.back  || null;
+
+      if(currentMode === 'receive'){
+        const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
+        if(rec){
+          const fUrl = rec['صورة_الأمام']||'';
+          const bUrl = rec['صورة_الخلف']||'';
+          if(fUrl.startsWith('data:')) pFront = fUrl;
+          else if(fUrl){ showLoading('جاري تحميل صورة الأمام...'); pFront = await fetchImgBase64(fUrl) || null; }
+          if(bUrl.startsWith('data:')) pBack = bUrl;
+          else if(bUrl){ showLoading('جاري تحميل صورة الخلف...'); pBack = await fetchImgBase64(bUrl) || null; }
+        }
+      }
+
+      const savedFront = deliverImgs.front;
+      const savedBack  = deliverImgs.back;
+      if(pFront) deliverImgs.front = pFront;
+      if(pBack)  deliverImgs.back  = pBack;
+
+      showLoading('جاري بناء الوثيقة...');
+      certHTML = buildCertHTML(currentMode, true);
+
+      deliverImgs.front = savedFront;
+      deliverImgs.back  = savedBack;
+      pdfFileLabel = (currentMode==='deliver'?'تسليم':'استلام')+'_'+(currentCertId||'');
     }
-
-    // ── حفظ مؤقت في deliverImgs لاستخدامها في buildCertHTML ──
-    const savedFront = deliverImgs.front;
-    const savedBack  = deliverImgs.back;
-    if(pFront) deliverImgs.front = pFront;
-    if(pBack)  deliverImgs.back  = pBack;
-
-    showLoading('جاري بناء الوثيقة...');
-    const certHTML = buildCertHTML(currentMode, true);
-
-    // استعادة الأصلي
-    deliverImgs.front = savedFront;
-    deliverImgs.back  = savedBack;
 
 // ── wrapper مرئي فعلياً داخل الصفحة (يحل مشكلة html2canvas مع العناصر خارج viewport) ──
     // الحل الموثق: العنصر يكون ضمن منطقة scroll طبيعية، نغطيه بـ overlay أبيض فوقه
@@ -1507,7 +1694,7 @@ async function downloadPDF(){
       y += ph;
     }
 
-    const fname = (currentMode==='deliver'?'تسليم':'استلام')+'_'+(currentCertId||'')+'.pdf';
+    const fname = pdfFileLabel + '.pdf';
     pdf.save(fname);
     showToast('✅ تم تحميل PDF','success');
 

@@ -333,8 +333,8 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
       </div>
       <div class="form-row full">
         <div class="field">
-          <label>ملاحظات (اختياري)</label>
-          <textarea id="d_notes" placeholder="أي ملاحظات على العهدة..."></textarea>
+          <label>ملاحظات حالة الجهاز <span style="color:var(--red);font-size:11px">* إجباري</span></label>
+          <textarea id="d_notes" placeholder="مثال: الجهاز سليم — لا توجد خدوش / يوجد خدش طفيف في الزاوية اليسرى..." style="min-height:80px"></textarea>
         </div>
       </div>
     </div>
@@ -959,6 +959,8 @@ async function submitDeliver(){
   if(!empName){showToast('⚠️ اسم الموظف غير مكتمل — تحقق من الرقم الوظيفي','error');return;}
   const devType=document.getElementById('d_deviceType').value;
   if(!devType){showToast('⚠️ اختر نوع الجهاز','error');return;}
+  const dNotes=document.getElementById('d_notes').value.trim();
+  if(!dNotes){showToast('⚠️ ملاحظات حالة الجهاز إجبارية','error');return;}
   if(!deliverImgs.front){showToast('⚠️ أضف صورة الأمام','error');return;}
   if(!deliverImgs.back){showToast('⚠️ أضف صورة الخلف','error');return;}
   if(isBlankSig('d')){showToast('⚠️ يرجى التوقيع أولاً','error');return;}
@@ -1338,16 +1340,20 @@ function buildCertHTML(mode, forPDF){
       <table width="100%" cellspacing="0" cellpadding="0" border="0">${checksRows}</table>
     </div>
 
-    <!-- ملاحظات التسليم -->
-    ${notes?`<div style="${BASE}margin-bottom:16px;">
-      ${sec('ملاحظات التسليم')}
-      <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:11px 14px;font-size:12px;color:#0B2A5A;line-height:1.85;border-right:3px solid #C8960C;">${notes}</div>
-    </div>`:''}
+    <!-- ملاحظات حالة الجهاز (إجبارية عند التسليم — تظهر دائماً) -->
+    <div style="${BASE}margin-bottom:16px;">
+      ${sec('ملاحظات حالة الجهاز')}
+      <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:12px 15px;font-size:12px;color:#0B2A5A;line-height:1.9;border-right:4px solid #C8960C;font-weight:500;">
+        ${notes||'—'}
+      </div>
+    </div>
 
-    <!-- ملاحظات المستلم (إجبارية — تظهر دائماً لو موجودة) -->
-    ${receiverNotes?`<div style="${BASE}margin-bottom:16px;">
+    <!-- ملاحظات المستلم (تظهر فقط في وثيقة الاستلام) -->
+    ${(!isD)?`<div style="${BASE}margin-bottom:16px;">
       ${sec('ملاحظات المستلم')}
-      <div style="${BASE}background:#EAF5F0;border-radius:8px;padding:11px 14px;font-size:12px;color:#0A4A2A;line-height:1.85;border-right:3px solid #1A7A4A;font-weight:500;">${receiverNotes}</div>
+      <div style="${BASE}background:#EAF5F0;border-radius:8px;padding:12px 15px;font-size:12px;color:#0A4A2A;line-height:1.9;border-right:4px solid #1A7A4A;font-weight:500;">
+        ${receiverNotes||'—'}
+      </div>
     </div>`:''}
 
   </div>

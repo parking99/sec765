@@ -1388,6 +1388,36 @@ function previewCert(mode){
   overlay.scrollTop=0;
   const modal=overlay.querySelector('.modal');
   if(modal)modal.scrollTop=0;
+
+  // في وضع الاستلام: إذا الصور روابط Drive قديمة (مو base64)، حوّلها بالخلفية وأعد الرسم
+  if(mode === 'receive' && !deliverImgs.front && !deliverImgs.back){
+    const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
+    if(rec){
+      const fUrl = rec['صورة_الأمام']||'';
+      const bUrl = rec['صورة_الخلف']||'';
+      const needsConv = (fUrl && !fUrl.startsWith('data:')) || (bUrl && !bUrl.startsWith('data:'));
+      if(needsConv){
+        (async()=>{
+          const savedFront = deliverImgs.front;
+          const savedBack  = deliverImgs.back;
+          if(fUrl && !fUrl.startsWith('data:')){
+            const b64 = await fetchImgBase64(fUrl);
+            if(b64) deliverImgs.front = b64;
+          }
+          if(bUrl && !bUrl.startsWith('data:')){
+            const b64 = await fetchImgBase64(bUrl);
+            if(b64) deliverImgs.back = b64;
+          }
+          // أعد الرسم أولاً وهي تحمل الصور المحوّلة، ثم استعد الحالة الأصلية
+          if(currentMode==='receive' && overlay.classList.contains('show') && !viewingRecordId){
+            document.getElementById('certContent').innerHTML = buildCertHTML('receive', false);
+          }
+          deliverImgs.front = savedFront;
+          deliverImgs.back  = savedBack;
+        })();
+      }
+    }
+  }
 }
 
 // ── عرض تفاصيل سجل من نتائج البحث (قراءة فقط، بلا تعديل) ──

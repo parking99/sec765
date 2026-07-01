@@ -421,8 +421,8 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
       </div>
       <div class="form-row full">
         <div class="field">
-          <label>ملاحظات المستلم (اختياري)</label>
-          <textarea id="r_receiverNotes" placeholder="أي ملاحظات عند الاستلام..."></textarea>
+          <label>ملاحظات المستلم <span style="color:var(--red)">* إجباري</span></label>
+          <textarea id="r_receiverNotes" placeholder="أدخل ملاحظاتك عند الاستلام (مثال: الجهاز سليم / يوجد خدش طفيف)..." style="min-height:80px"></textarea>
         </div>
       </div>
     </div>
@@ -866,6 +866,8 @@ async function openReceiveForm(docId){
   document.getElementById('r_receiverNotes').value='';
   document.getElementById('r_empBadge').style.display='none';
   clearSig('r');
+  // مسح الصور القديمة من أي عملية تسليم سابقة
+  deliverImgs = {front:null, back:null};
   const toThumb=url=>{const m=url.match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`:url;};
   const fp=r['صورة_الأمام']||'',bp=r['صورة_الخلف']||'';
   const ph=document.getElementById('r_existingPhotos');
@@ -885,12 +887,22 @@ async function openReceiveForm(docId){
   showPage('receive');
   showToast('📋 تم تحميل بيانات العهدة');
 
-  // تحويل روابط Drive القديمة إلى base64 بالخلفية لضمان ظهورها بشكل موثوق
+  // تحويل روابط Drive القديمة إلى base64 بالخلفية لضمان ظهورها في المعاينة والـ PDF
+  // الصور base64 تُخزَّن في deliverImgs حتى تستخدمها buildCertHTML عند الضغط على المعاينة
+  deliverImgs.front = fp.startsWith('data:') ? fp : null;
+  deliverImgs.back  = bp.startsWith('data:') ? bp : null;
+
   if((fp && !fp.startsWith('data:')) || (bp && !bp.startsWith('data:'))){
     let fFinal = fpQuick, bFinal = bpQuick;
-    if(fp && !fp.startsWith('data:')){ const b=await fetchImgBase64(fp); if(b) fFinal=b; }
-    if(bp && !bp.startsWith('data:')){ const b=await fetchImgBase64(bp); if(b) bFinal=b; }
-    // أعد الرسم فقط لو ما زلنا بنفس السجل
+    if(fp && !fp.startsWith('data:')){
+      const b = await fetchImgBase64(fp);
+      if(b){ fFinal = b; deliverImgs.front = b; }
+    }
+    if(bp && !bp.startsWith('data:')){
+      const b = await fetchImgBase64(bp);
+      if(b){ bFinal = b; deliverImgs.back = b; }
+    }
+    // أعد رسم الصور في النموذج إذا ما زلنا بنفس السجل
     if(currentCertId === docId) renderPhotos(fFinal, bFinal);
   }
 }
@@ -1049,6 +1061,8 @@ async function submitReceive(){
   const rEmpName=document.getElementById('r_receiverEmpName').value.trim();
   if(!rEmpId){showToast('⚠️ أدخل رقمك الوظيفي','error');return;}
   if(!rEmpName){showToast('⚠️ اسم المستلم غير مكتمل','error');return;}
+  const rNotes=document.getElementById('r_receiverNotes').value.trim();
+  if(!rNotes){showToast('⚠️ الملاحظات إجبارية — أدخل ملاحظتك عند الاستلام','error');return;}
   if(isBlankSig('r')){showToast('⚠️ يرجى التوقيع أولاً','error');return;}
   const now=new Date();
   const dStr=now.toLocaleDateString('ar-SA',{year:'numeric',month:'2-digit',day:'2-digit'});
@@ -1140,7 +1154,7 @@ function buildCertHTML(mode, forPDF){
   const tStr=now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   const certId=currentCertId||'—';
 
-  let devType,serial,empId,empName,notes,gate,gateNum;
+  let devType,serial,empId,empName,notes,receiverNotes='',gate,gateNum;
   let senderEmpId='—',senderEmpName='—',receiverEmpId='—',receiverEmpName='—';
   let photoFront='', photoBack=''; // روابط أو base64 للصور
 
@@ -1168,13 +1182,11 @@ function buildCertHTML(mode, forPDF){
     senderEmpId=empId; senderEmpName=empName;
     receiverEmpId=document.getElementById('r_receiverEmpId').value||'—';
     receiverEmpName=document.getElementById('r_receiverEmpName').value||'—';
-    // صور الاستلام — مخزّنة كـ base64 أو Drive URL في السجل
+    receiverNotes=document.getElementById('r_receiverNotes').value||'';
+    // صور الاستلام — محفوظة في deliverImgs بعد تحويلها (يتم في openReceiveForm)
     const rec2=allRecords.find(r=>String(r['رقم_الوثيقة'])===String(certId));
-    // أولاً: إذا downloadPDF حوّلها مسبقاً لـ base64 في deliverImgs
-    if(deliverImgs.front) photoFront = deliverImgs.front;
-    else if(rec2) photoFront = rec2['صورة_الأمام']||'';
-    if(deliverImgs.back) photoBack = deliverImgs.back;
-    else if(rec2) photoBack = rec2['صورة_الخلف']||'';
+    photoFront = deliverImgs.front || (rec2?rec2['صورة_الأمام']:'') || '';
+    photoBack  = deliverImgs.back  || (rec2?rec2['صورة_الخلف']:'') || '';
   }
 
   const sigPrefix=isD?'d':'r';
@@ -1326,10 +1338,16 @@ function buildCertHTML(mode, forPDF){
       <table width="100%" cellspacing="0" cellpadding="0" border="0">${checksRows}</table>
     </div>
 
-    <!-- ملاحظات -->
+    <!-- ملاحظات التسليم -->
     ${notes?`<div style="${BASE}margin-bottom:16px;">
-      ${sec('ملاحظات')}
+      ${sec('ملاحظات التسليم')}
       <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:11px 14px;font-size:12px;color:#0B2A5A;line-height:1.85;border-right:3px solid #C8960C;">${notes}</div>
+    </div>`:''}
+
+    <!-- ملاحظات المستلم (إجبارية — تظهر دائماً لو موجودة) -->
+    ${receiverNotes?`<div style="${BASE}margin-bottom:16px;">
+      ${sec('ملاحظات المستلم')}
+      <div style="${BASE}background:#EAF5F0;border-radius:8px;padding:11px 14px;font-size:12px;color:#0A4A2A;line-height:1.85;border-right:3px solid #1A7A4A;font-weight:500;">${receiverNotes}</div>
     </div>`:''}
 
   </div>
@@ -1377,6 +1395,9 @@ function closeCertModal(){
   }
 }
 
+// صور محوّلة مؤقتاً للمعاينة والـ PDF (بدون تلويث deliverImgs)
+let _convertedPhotos = {front: null, back: null};
+
 function previewCert(mode){
   currentMode=mode;
   viewingRecordId=null;
@@ -1384,41 +1405,11 @@ function previewCert(mode){
   const dlBtn=document.getElementById('dlBtn'); if(dlBtn)dlBtn.style.display='flex';
   const overlay=document.getElementById('overlay');
   overlay.classList.add('show');
-  // scroll modal to top
   overlay.scrollTop=0;
   const modal=overlay.querySelector('.modal');
   if(modal)modal.scrollTop=0;
-
-  // في وضع الاستلام: إذا الصور روابط Drive قديمة (مو base64)، حوّلها بالخلفية وأعد الرسم
-  if(mode === 'receive' && !deliverImgs.front && !deliverImgs.back){
-    const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
-    if(rec){
-      const fUrl = rec['صورة_الأمام']||'';
-      const bUrl = rec['صورة_الخلف']||'';
-      const needsConv = (fUrl && !fUrl.startsWith('data:')) || (bUrl && !bUrl.startsWith('data:'));
-      if(needsConv){
-        (async()=>{
-          const savedFront = deliverImgs.front;
-          const savedBack  = deliverImgs.back;
-          if(fUrl && !fUrl.startsWith('data:')){
-            const b64 = await fetchImgBase64(fUrl);
-            if(b64) deliverImgs.front = b64;
-          }
-          if(bUrl && !bUrl.startsWith('data:')){
-            const b64 = await fetchImgBase64(bUrl);
-            if(b64) deliverImgs.back = b64;
-          }
-          // أعد الرسم أولاً وهي تحمل الصور المحوّلة، ثم استعد الحالة الأصلية
-          if(currentMode==='receive' && overlay.classList.contains('show') && !viewingRecordId){
-            document.getElementById('certContent').innerHTML = buildCertHTML('receive', false);
-          }
-          deliverImgs.front = savedFront;
-          deliverImgs.back  = savedBack;
-        })();
-      }
-    }
-  }
 }
+
 
 // ── عرض تفاصيل سجل من نتائج البحث (قراءة فقط، بلا تعديل) ──
 let viewingRecordId = null;
@@ -1687,10 +1678,13 @@ async function downloadPDF(){
       const savedBack  = deliverImgs.back;
       if(pFront) deliverImgs.front = pFront;
       if(pBack)  deliverImgs.back  = pBack;
+      const savedConv = _convertedPhotos;
+      _convertedPhotos = {front:null, back:null}; // أوقف تدخّل _convertedPhotos أثناء PDF
 
       showLoading('جاري بناء الوثيقة...');
       certHTML = buildCertHTML(currentMode, true);
 
+      _convertedPhotos = savedConv; // استعد
       deliverImgs.front = savedFront;
       deliverImgs.back  = savedBack;
       pdfFileLabel = (currentMode==='deliver'?'تسليم':'استلام')+'_'+(currentCertId||'');

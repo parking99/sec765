@@ -702,7 +702,13 @@ function uploadPhoto(d) {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
   const rows = sh.getDataRange().getValues();
   const headers = rows[0];
-  const col = headers.indexOf(colName)+1;
+  let col = headers.indexOf(colName)+1;
+  if (col === 0) {
+    // العمود غير موجود بعد (شيت قديم قبل تحديث السكربت) — أنشئه تلقائياً بدل الفشل الصامت
+    col = headers.length + 1;
+    sh.getRange(1, col).setValue(colName)
+      .setBackground('#0B2A5A').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
+  }
   for (let i=1; i<rows.length; i++) {
     if (String(rows[i][0]) === String(d.docId)) {
       sh.getRange(i+1,col).setValue(urlToStore);
@@ -764,7 +770,7 @@ const sigs = {};
   refreshData(true);
   startAutoRefresh();
   updatePendingBadge();
-  if(navigator.onLine!==false) retryPendingUploads(true);
+  retryPendingUploads(true);
 })();
 
 function initSig(p){
@@ -1162,10 +1168,6 @@ function updatePendingBadge(){
 async function retryPendingUploads(auto){
   const arr = getPendingUploads();
   if(!arr.length){ if(!auto) showToast('✅ لا توجد صور معلقة'); return; }
-  if(typeof navigator!=='undefined' && navigator.onLine===false){
-    if(!auto) showToast('⚠️ لا يوجد اتصال بالإنترنت حالياً','error');
-    return;
-  }
   const remaining=[];
   for(let i=0;i<arr.length;i++){
     const it=arr[i];
@@ -2032,9 +2034,6 @@ function copyCode(){
 
 async function apiGet(action){const r=await fetch(`${sheetUrl}?action=${action}&t=${Date.now()}`);return r.json();}
 async function apiPost(body){
-  if(typeof navigator!=='undefined' && navigator.onLine===false){
-    throw new Error('لا يوجد اتصال بالإنترنت حالياً — تحقق من الشبكة وحاول مجدداً');
-  }
   let r;
   try{
     const controller = new AbortController();

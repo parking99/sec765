@@ -965,21 +965,30 @@ async function openReceiveForm(docId){
 }
 
 const empTimers={};
+const empCache={}; // كاش الجلسة: id -> اسم (من دليل الموظفين الرسمي فقط، وليس من سجلات سابقة قد تكون خاطئة)
 function lookupEmp(prefix,val){
+  const idField=document.getElementById(prefix==='d'?'d_empId':'r_receiverEmpId');
   const nameEl=document.getElementById(prefix==='d'?'d_empName':'r_receiverEmpName');
   const badge=document.getElementById(prefix+'_empBadge');
   nameEl.value='';badge.style.display='none';
   clearTimeout(empTimers[prefix]);
-  if(!val||val.length<2)return;
+  const id=val.trim();
+  if(!id||id.length<2)return;
+  // عرض فوري إذا كان بالكاش (نفس الجلسة) لتحسين السرعة، لكن دائماً من دليل الموظفين الرسمي فقط
+  if(empCache[id]){ nameEl.value=empCache[id]; badge.style.display='inline-block'; }
   empTimers[prefix]=setTimeout(async()=>{
-    const found=allRecords.find(r=>String(r['رقم_موظف_المسلم_له']).trim()===val.trim()||String(r['رقم_موظف_المستلم']||'').trim()===val.trim());
-    const name=found?(found['اسم_موظف_المسلم_له']||found['اسم_موظف_المستلم']||null):null;
-    if(name){nameEl.value=name;badge.style.display='inline-block';return;}
     try{
-      const d=await apiGet('getEmployee&id='+encodeURIComponent(val));
-      if(d.name){nameEl.value=d.name;badge.style.display='inline-block';}
+      const d=await apiGet('getEmployee&id='+encodeURIComponent(id));
+      // تجاهل الرد إذا المستخدم غيّر الرقم أثناء انتظار الاستجابة
+      if(idField.value.trim() !== id) return;
+      if(d && d.name){
+        empCache[id]=d.name;
+        nameEl.value=d.name; badge.style.display='inline-block';
+      }else{
+        nameEl.value=''; badge.style.display='none';
+      }
     }catch(_){}
-  },500);
+  },400);
 }
 
 async function loadDeviceTypes(){

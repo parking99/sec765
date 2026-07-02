@@ -50,20 +50,16 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 .stat-card.teal .s-ic{background:#EEF2F6;color:var(--gray)}
 
 .section-title{font-size:11px;font-weight:700;color:var(--gray);margin-bottom:10px;letter-spacing:.5px}
-.gates-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
-.gate-btn{background:var(--white);border:1px solid var(--border);border-right:4px solid var(--blue);border-radius:14px;padding:16px 18px;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(11,42,90,.05)}
-.gate-btn:hover{border-color:var(--teal);border-right-color:var(--teal)}
-.gate-btn.active{border-color:var(--blue);background:linear-gradient(160deg,#EBF4FC,#F0F8FF)}
-.gate-btn .gb-top{display:flex;align-items:center;justify-content:space-between}
-.gate-btn .gb-info{display:flex;align-items:center;gap:12px}
-.gate-btn .g-name{font-size:15px;font-weight:700;color:var(--navy)}
-.gate-btn .g-sub{font-size:11px;color:var(--gray);margin-top:2px}
-.gate-btn .g-count{font-size:11px;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.gates-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.gate-btn{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:16px 10px 12px;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(11,42,90,.05);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:104px}
+.gate-btn:hover{border-color:var(--teal);transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,174,239,.15)}
+.gate-btn.active{border-color:var(--blue);background:linear-gradient(160deg,#EBF4FC,#F0F8FF);box-shadow:0 4px 14px rgba(21,101,192,.18)}
+.gate-btn .g-name{font-size:13px;font-weight:700;color:var(--navy)}
+.gate-btn .g-count{font-size:10px;padding:2px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;font-weight:600}
 .gate-btn .g-count.has{background:#FFF3E0;color:var(--orange)}
 .gate-btn .g-count.none{background:#F0F4F8;color:var(--gray)}
-.gate-btn .gb-action{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);display:flex;align-items:center;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--blue)}
-.gate-btn .gb-action:hover{color:var(--teal2)}
-.guard-wrap{width:40px;height:40px;flex-shrink:0;border-radius:10px;background:#EEF2F8;color:var(--blue);display:flex;align-items:center;justify-content:center}
+@media(max-width:420px){.gates-grid{grid-template-columns:repeat(2,1fr)}}
+.guard-wrap{width:38px;height:38px;flex-shrink:0;border-radius:10px;background:#EEF2F8;color:var(--blue);display:flex;align-items:center;justify-content:center}
 
 .pending-panel{background:var(--white);border:1px solid var(--border);border-radius:16px;margin-bottom:18px;overflow:hidden;display:none;box-shadow:0 2px 10px rgba(11,42,90,.06)}
 .panel-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
@@ -331,8 +327,10 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
     <div class="card-header"><div class="dot"></div>موقع البوابة</div>
     <div class="card-body">
       <div class="gates-grid" id="deliverGatesGrid"></div>
+      <div style="font-size:11px;color:var(--gray);text-align:center;margin-top:4px">اختر البوابة لإظهار بيانات العهدة</div>
     </div>
   </div>
+  <div id="deliverFormBody" style="display:none">
   <div class="card">
     <div class="card-header"><div class="dot"></div>بيانات الموظف</div>
     <div class="card-body">
@@ -366,8 +364,8 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
       </div>
       <div class="form-row full">
         <div class="field">
-          <label>ملاحظات (اختياري)</label>
-          <textarea id="d_notes" placeholder="حالة الجهاز، ملحقات..." style="min-height:70px"></textarea>
+          <label>ملاحظات حالة الجهاز <span style="color:var(--red);font-size:11px">* إجباري</span></label>
+          <textarea id="d_notes" placeholder="مثال: الجهاز سليم — لا توجد خدوش / يوجد خدش طفيف في الزاوية اليسرى..." style="min-height:70px"></textarea>
         </div>
       </div>
     </div>
@@ -410,6 +408,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
   <div class="btn-row">
     <button class="btn btn-primary" onclick="submitDeliver()">💾 حفظ وتسجيل</button>
     <button class="btn btn-cancel" onclick="showPage('gates')">إلغاء</button>
+  </div>
   </div>
 </div>
 
@@ -772,10 +771,19 @@ function resetDeliverForm(keepGate){
   ['d_serial','d_empId','d_empName','d_notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const ds=document.getElementById('d_deviceType');if(ds)ds.selectedIndex=0;
   document.getElementById('d_empBadge').style.display='none';
+  const body=document.getElementById('deliverFormBody');
   if(!keepGate){
     document.querySelectorAll('#deliverGatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
     deliverGate=null;
-    if(selectedGate){deliverGate=selectedGate;const el=document.getElementById('deliverGatesGrid_'+selectedGate);if(el)el.classList.add('active');}
+    if(body)body.style.display='none';
+    if(selectedGate){
+      deliverGate=selectedGate;
+      const el=document.getElementById('deliverGatesGrid_'+selectedGate);
+      if(el)el.classList.add('active');
+      if(body)body.style.display='block';
+    }
+  }else if(body && deliverGate){
+    body.style.display='block';
   }
 }
 
@@ -788,26 +796,10 @@ function renderGates(cid, isForm){
   const c=document.getElementById(cid);
   c.innerHTML=GATES.map(g=>`
     <div class="gate-btn" id="${cid}_${g.id}" onclick="${isForm?'selectDeliverGate':'selectGate'}('${g.id}')">
-      <div class="gb-top">
-        <div class="gb-info">
-          <div class="guard-wrap">${gateIconSVG()}</div>
-          <div>
-            <div class="g-name">${g.name}</div>
-            <div class="g-sub">${g.guard ? 'بوابة رقم '+g.num : 'مبنى'}</div>
-          </div>
-        </div>
-        <div class="g-count none" id="${cid}_cnt_${g.id}">—</div>
-      </div>
-      ${isForm ? '' : `<div class="gb-action" onclick="event.stopPropagation();quickDeliver('${g.id}')"><span>تسجيل تسليم</span><span>←</span></div>`}
+      <div class="guard-wrap">${gateIconSVG()}</div>
+      <div class="g-name">${g.name}</div>
+      <div class="g-count none" id="${cid}_cnt_${g.id}">—</div>
     </div>`).join('');
-}
-function quickDeliver(gid){
-  resetDeliverForm(false);
-  showPage('deliver');
-  deliverGate=gid;
-  const el=document.getElementById('deliverGatesGrid_'+gid);
-  document.querySelectorAll('#deliverGatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
-  if(el)el.classList.add('active');
 }
 
 function updateCounts(){
@@ -815,7 +807,7 @@ function updateCounts(){
     const n=allRecords.filter(r=>String(r['الموقع'])===g.name&&String(r['الحالة'])==='معلقة').length;
     ['gatesGrid','deliverGatesGrid'].forEach(cid=>{
       const el=document.getElementById(`${cid}_cnt_${g.id}`);if(!el)return;
-      el.innerHTML=`⏱ ${n} جهاز بالداخل`;
+      el.textContent=n?`${n} معلقة`:'لا يوجد';
       el.className='g-count '+(n?'has':'none');
     });
   });
@@ -855,6 +847,8 @@ function selectDeliverGate(gid){
   deliverGate=gid;
   document.querySelectorAll('#deliverGatesGrid .gate-btn').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('deliverGatesGrid_'+gid);if(el)el.classList.add('active');
+  const body=document.getElementById('deliverFormBody');
+  if(body)body.style.display='block';
 }
 
 async function openReceiveForm(docId){
@@ -971,6 +965,8 @@ async function submitDeliver(){
   if(!empName){showToast('⚠️ اسم الموظف غير مكتمل — تحقق من الرقم الوظيفي','error');return;}
   const devType=document.getElementById('d_deviceType').value;
   if(!devType){showToast('⚠️ اختر نوع الجهاز','error');return;}
+  const dNotes=document.getElementById('d_notes').value.trim();
+  if(!dNotes){showToast('⚠️ ملاحظات حالة الجهاز إجبارية','error');return;}
   if(!deliverImgs.front){showToast('⚠️ أضف صورة الأمام','error');return;}
   if(!deliverImgs.back){showToast('⚠️ أضف صورة الخلف','error');return;}
   if(isBlankSig('d')){showToast('⚠️ يرجى التوقيع أولاً','error');return;}
@@ -989,13 +985,26 @@ async function submitDeliver(){
 
     // ── رفع الصور مع معالجة أخطاء حقيقية (لا نُخفي الفشل) ──
     showLoading('جاري رفع صورة الأمام...');
-    const frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front);
+    let frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front);
     showLoading('جاري رفع صورة الخلف...');
-    const backResult  = await uploadPhotoWithRetry(certId,'back', deliverImgs.back);
+    let backResult  = await uploadPhotoWithRetry(certId,'back', deliverImgs.back);
+
+    // محاولة أخيرة إضافية للصورة/الصور التي فشلت فقط (تحسّن الموثوقية في الشبكات الضعيفة)
+    if(!frontResult.success){
+      showLoading('إعادة محاولة رفع صورة الأمام...');
+      frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front,2);
+    }
+    if(!backResult.success){
+      showLoading('إعادة محاولة رفع صورة الخلف...');
+      backResult = await uploadPhotoWithRetry(certId,'back',deliverImgs.back,2);
+    }
 
     if(!frontResult.success || !backResult.success){
+      const parts=[];
+      if(!frontResult.success) parts.push('صورة الأمام: '+(frontResult.error||'فشل غير معروف'));
+      if(!backResult.success)  parts.push('صورة الخلف: '+(backResult.error||'فشل غير معروف'));
       console.error('فشل رفع الصور:', {front:frontResult, back:backResult});
-      showToast('⚠️ تم الحفظ لكن فشل رفع بعض الصور — راجع وحدة التحكم (Console)','error');
+      showToast('⚠️ تم حفظ السجل لكن فشل رفع '+parts.join(' | '),'error');
     }
 
     currentCertId=certId; currentMode='deliver';
@@ -1023,13 +1032,13 @@ function compressImg(dataUrl, maxW=800, quality=0.75){
   });
 }
 
-// ضغط الصورة بشكل تكراري حتى تصل لحجم آمن (أقل من 130KB كـ base64)
-async function compressImgAuto(dataUrl, targetMaxChars=130000){
-  let w = 700, q = 0.65;
+// ضغط الصورة بشكل تكراري حتى تصل لحجم آمن (أقل من 90KB كـ base64) — حجم أصغر = رفع أسرع وأضمن
+async function compressImgAuto(dataUrl, targetMaxChars=90000){
+  let w = 640, q = 0.6;
   let result = await compressImg(dataUrl, w, q);
   let tries = 0;
-  while(result.length > targetMaxChars && tries < 5){
-    if(q > 0.4) q -= 0.1;
+  while(result.length > targetMaxChars && tries < 6){
+    if(q > 0.35) q -= 0.08;
     else w = Math.round(w*0.8);
     result = await compressImg(dataUrl, w, q);
     tries++;
@@ -1046,8 +1055,8 @@ async function uploadPhoto(docId,side,dataUrl){
   return apiPost({action:'uploadPhoto',docId,side,base64,mimeType});
 }
 
-// رفع مع إعادة محاولة + إرجاع تفاصيل الخطأ بدل إخفائه
-async function uploadPhotoWithRetry(docId, side, dataUrl, maxRetries=2){
+// رفع مع إعادة محاولة (تأخير تصاعدي) + إرجاع تفاصيل الخطأ الحقيقية بدل إخفائها
+async function uploadPhotoWithRetry(docId, side, dataUrl, maxRetries=4){
   let lastError = null;
   for(let attempt=0; attempt<=maxRetries; attempt++){
     try{
@@ -1062,7 +1071,7 @@ async function uploadPhotoWithRetry(docId, side, dataUrl, maxRetries=2){
       lastError = e.message;
       console.warn(`⚠️ محاولة ${attempt+1} لـ ${side} استثناء:`, e);
     }
-    if(attempt < maxRetries) await new Promise(r=>setTimeout(r, 800));
+    if(attempt < maxRetries) await new Promise(r=>setTimeout(r, 700*(attempt+1)));
   }
   return {success:false, error: lastError};
 }
@@ -1230,17 +1239,17 @@ function buildCertHTML(mode, forPDF){
   const photoCell=(src,label)=> src
     ? `<td width="50%" style="padding:4px;vertical-align:top;">
         <div style="border-radius:10px;overflow:hidden;border:2px solid #1565C0;box-shadow:0 2px 8px rgba(21,101,192,.15);">
-          <img src="${src}" style="width:100%;height:145px;object-fit:cover;display:block;background:#F4F8FC;" crossorigin="anonymous" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';this.parentElement.style.height='175px';">
-          <div style="width:100%;height:145px;display:none;align-items:center;justify-content:center;background:#FFF8E1;color:#7A5800;font-size:11px;font-family:${F};">⚠️ تعذّر تحميل الصورة</div>
+          <img src="${src}" style="width:100%;height:100px;object-fit:cover;display:block;background:#F4F8FC;" crossorigin="anonymous" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';this.parentElement.style.height='120px';">
+          <div style="width:100%;height:100px;display:none;align-items:center;justify-content:center;background:#FFF8E1;color:#7A5800;font-size:11px;font-family:${F};">⚠️ تعذّر تحميل الصورة</div>
           <div style="background:#0B2A5A;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px;font-family:${F};">${label}</div>
         </div>
       </td>`
     : `<td width="50%" style="padding:4px;vertical-align:top;">
-        <div style="height:175px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;font-family:${F};">لا توجد صورة</div>
+        <div style="height:100px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;font-family:${F};">لا توجد صورة</div>
       </td>`;
 
   const photosHTML = (photoFront||photoBack) ? `
-    <div style="${BASE}margin-bottom:16px;">
+    <div style="${BASE}margin-bottom:9px;">
       <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">
         صور الجهاز
       </div>
@@ -1255,13 +1264,13 @@ function buildCertHTML(mode, forPDF){
   // ── قائمة التحقق ──
   const chkRow=(a,b)=>`
     <tr>
-      <td width="50%" style="padding-bottom:7px;vertical-align:top;">
+      <td width="50%" style="padding-bottom:4px;vertical-align:top;">
         <div style="${BASE}display:flex;align-items:center;gap:6px;font-size:11px;color:#0B2A5A;font-weight:500;">
           <span style="display:inline-block;width:16px;height:16px;min-width:16px;background:#1565C0;border-radius:4px;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:16px;">✓</span>
           <span>${a}</span>
         </div>
       </td>
-      <td width="50%" style="padding-bottom:7px;vertical-align:top;">
+      <td width="50%" style="padding-bottom:4px;vertical-align:top;">
         ${b?`<div style="${BASE}display:flex;align-items:center;gap:6px;font-size:11px;color:#0B2A5A;font-weight:500;">
           <span style="display:inline-block;width:16px;height:16px;min-width:16px;background:#1565C0;border-radius:4px;color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:16px;">✓</span>
           <span>${b}</span>
@@ -1285,7 +1294,7 @@ function buildCertHTML(mode, forPDF){
 <div style="${BASE}width:100%;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.13);background:#fff;border:1px solid #E2E9F0;">
 
   <!-- هيدر -->
-  <div style="position:relative;min-height:138px;overflow:hidden;background:linear-gradient(150deg,#C8E8F8 0%,#9DCEED 35%,#B5E3F2 55%,#E4F4FB 80%,#fff 100%);padding:18px 20px 16px;">
+  <div style="position:relative;min-height:100px;overflow:hidden;background:linear-gradient(150deg,#C8E8F8 0%,#9DCEED 35%,#B5E3F2 55%,#E4F4FB 80%,#fff 100%);padding:12px 20px 10px;">
     <!-- رقم البوابة watermark -->
     <div style="position:absolute;left:6px;top:-14px;font-size:140px;font-weight:800;color:rgba(21,101,192,.08);line-height:1;pointer-events:none;font-family:Arial,sans-serif;z-index:0;">${gateNum}</div>
     <!-- شعار — نص فقط بدون SVG -->
@@ -1293,8 +1302,8 @@ function buildCertHTML(mode, forPDF){
     <!-- بادج النوع -->
     <div style="position:absolute;top:14px;right:14px;${badgeStyle}z-index:2;">${isD?'📤 ':'📥 '}${typeLabel}</div>
     <!-- اسم البوابة -->
-    <div style="position:relative;z-index:2;margin-top:54px;">
-      <div style="${BASE}font-size:30px;font-weight:800;color:#0B2A5A;line-height:1.15;margin-bottom:3px;">${gate}</div>
+    <div style="position:relative;z-index:2;margin-top:38px;">
+      <div style="${BASE}font-size:24px;font-weight:800;color:#0B2A5A;line-height:1.15;margin-bottom:2px;">${gate}</div>
       <div style="${BASE}font-size:11px;color:rgba(11,42,90,.5);font-weight:500;">نظام إدارة العهد الأمنية</div>
     </div>
   </div>
@@ -1306,10 +1315,10 @@ function buildCertHTML(mode, forPDF){
   </div>
 
   <!-- جسم الشهادة -->
-  <div style="${BASE}padding:18px 20px 8px;">
+  <div style="${BASE}padding:12px 20px 4px;">
 
     <!-- بيانات الجهاز -->
-    <div style="${BASE}margin-bottom:16px;">
+    <div style="${BASE}margin-bottom:9px;">
       ${sec('بيانات الجهاز')}
       <table width="100%" cellspacing="9" cellpadding="0" border="0"><tr>
         <td width="50%">${field('نوع الجهاز', devType, '#F4F8FC', '#00AEEF')}</td>
@@ -1321,7 +1330,7 @@ function buildCertHTML(mode, forPDF){
     ${photosHTML}
 
     <!-- بيانات المُسلِّم -->
-    <div style="${BASE}margin-bottom:16px;">
+    <div style="${BASE}margin-bottom:9px;">
       ${sec('بيانات المُسلِّم')}
       <table width="100%" cellspacing="9" cellpadding="0" border="0"><tr>
         <td width="50%">${field('الرقم الوظيفي', senderEmpId, '#F4F8FC', '#1565C0')}</td>
@@ -1330,7 +1339,7 @@ function buildCertHTML(mode, forPDF){
     </div>
 
     <!-- بيانات المُستلِم -->
-    ${!isD?`<div style="${BASE}margin-bottom:16px;">
+    ${!isD?`<div style="${BASE}margin-bottom:9px;">
       ${sec('بيانات المُستلِم')}
       <table width="100%" cellspacing="9" cellpadding="0" border="0"><tr>
         <td width="50%">${field('الرقم الوظيفي', receiverEmpId, '#EAF5F0', '#1A7A4A', '#0A4A2A')}</td>
@@ -1339,29 +1348,29 @@ function buildCertHTML(mode, forPDF){
     </div>`:''}
 
     <!-- إقرار -->
-    <div style="${BASE}background:${typeBg};border:1.5px solid ${typeBorder};border-radius:10px;padding:13px 15px;margin-bottom:16px;">
+    <div style="${BASE}background:${typeBg};border:1.5px solid ${typeBorder};border-radius:10px;padding:7px 12px;margin-bottom:9px;">
       <div style="${BASE}font-size:12px;font-weight:700;color:${typeColor};margin-bottom:6px;">${isD?'إقرار التسليم':'إقرار الاستلام'}</div>
-      <div style="${BASE}font-size:12px;color:${typeColor};line-height:1.95;">${confirmText}</div>
+      <div style="${BASE}font-size:12px;color:${typeColor};line-height:1.6;">${confirmText}</div>
     </div>
 
     <!-- قائمة التحقق -->
-    <div style="${BASE}margin-bottom:16px;">
+    <div style="${BASE}margin-bottom:9px;">
       ${sec(isD?'حالة الجهاز عند التسليم':'تأكيدات الاستلام')}
       <table width="100%" cellspacing="0" cellpadding="0" border="0">${checksRows}</table>
     </div>
 
     <!-- ملاحظات حالة الجهاز (إجبارية عند التسليم — تظهر دائماً) -->
-    <div style="${BASE}margin-bottom:16px;">
+    <div style="${BASE}margin-bottom:9px;">
       ${sec('ملاحظات حالة الجهاز')}
-      <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:12px 15px;font-size:12px;color:#0B2A5A;line-height:1.9;border-right:4px solid #C8960C;font-weight:500;">
+      <div style="${BASE}background:#FFF9EC;border-radius:8px;padding:9px 13px;font-size:12px;color:#0B2A5A;line-height:1.6;border-right:4px solid #C8960C;font-weight:500;">
         ${notes||'—'}
       </div>
     </div>
 
     <!-- ملاحظات المستلم (تظهر فقط في وثيقة الاستلام) -->
-    ${(!isD)?`<div style="${BASE}margin-bottom:16px;">
+    ${(!isD)?`<div style="${BASE}margin-bottom:9px;">
       ${sec('ملاحظات المستلم')}
-      <div style="${BASE}background:#EAF5F0;border-radius:8px;padding:12px 15px;font-size:12px;color:#0A4A2A;line-height:1.9;border-right:4px solid #1A7A4A;font-weight:500;">
+      <div style="${BASE}background:#EAF5F0;border-radius:8px;padding:9px 13px;font-size:12px;color:#0A4A2A;line-height:1.6;border-right:4px solid #1A7A4A;font-weight:500;">
         ${receiverNotes||'—'}
       </div>
     </div>`:''}
@@ -1369,10 +1378,10 @@ function buildCertHTML(mode, forPDF){
   </div>
 
   <!-- التوقيع -->
-  <div style="border-top:1.5px dashed #D0DCE8;background:#F8FBFD;padding:16px 20px;">
+  <div style="border-top:1.5px dashed #D0DCE8;background:#F8FBFD;padding:10px 20px;">
     <table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
       <td width="50%" style="text-align:center;vertical-align:bottom;padding:0 10px;">
-        ${hasSig?`<img src="${sigImg}" style="max-height:52px;margin-bottom:6px;display:block;margin:0 auto 6px;" alt="sig">`:'<div style="height:52px;"></div>'}
+        ${hasSig?`<img src="${sigImg}" style="max-height:38px;margin-bottom:4px;display:block;margin:0 auto 4px;" alt="sig">`:'<div style="height:38px;"></div>'}
         <div style="border-top:2px solid #0B2A5A;width:130px;margin:0 auto 5px;"></div>
         <div style="${BASE}font-size:12px;color:#0B2A5A;font-weight:700;text-align:center;">${signerName}</div>
         <div style="${BASE}font-size:10px;color:#6B7A8D;text-align:center;margin-top:2px;">${signerRole}</div>
@@ -1380,7 +1389,7 @@ function buildCertHTML(mode, forPDF){
       <td width="50%" style="vertical-align:middle;padding:0 10px;">
         <div style="${BASE}background:#EDF4FA;border-radius:10px;padding:13px 15px;border-right:3px solid #00AEEF;">
           <div style="${BASE}font-size:11px;color:#0B2A5A;font-weight:700;margin-bottom:8px;">وثيقة رسمية معتمدة</div>
-          <div style="${BASE}font-size:10px;color:#6B7A8D;line-height:2.2;">
+          <div style="${BASE}font-size:10px;color:#6B7A8D;line-height:1.7;">
             <div>التاريخ: ${dStr}</div>
             <div>الوقت: ${tStr}</div>
             <div>الموقع: ${gate}</div>
@@ -1391,7 +1400,7 @@ function buildCertHTML(mode, forPDF){
   </div>
 
   <!-- فوتر -->
-  <div style="background:linear-gradient(135deg,#071830,#0B2A5A);padding:9px 20px;display:flex;align-items:center;justify-content:space-between;">
+  <div style="background:linear-gradient(135deg,#071830,#0B2A5A);padding:6px 20px;display:flex;align-items:center;justify-content:space-between;">
     <span style="${BASE}font-size:9px;color:rgba(255,255,255,.45);">نظام إدارة العهد الأمنية</span>
     <span style="${BASE}font-size:11px;color:#00AEEF;font-weight:700;">${certId}</span>
   </div>
@@ -1494,17 +1503,17 @@ function buildViewOnlyCert(r){
   const photoCell=(src,label)=> src
     ? `<td width="50%" style="padding:4px;vertical-align:top;">
         <div style="border-radius:10px;overflow:hidden;border:2px solid #1565C0;box-shadow:0 2px 8px rgba(21,101,192,.15);">
-          <img src="${src}" style="width:100%;height:145px;object-fit:cover;display:block;background:#F4F8FC;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-          <div style="width:100%;height:145px;display:none;align-items:center;justify-content:center;background:#FFF8E1;color:#7A5800;font-size:11px;font-family:${F};">⚠️ تعذّر تحميل الصورة</div>
+          <img src="${src}" style="width:100%;height:100px;object-fit:cover;display:block;background:#F4F8FC;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <div style="width:100%;height:100px;display:none;align-items:center;justify-content:center;background:#FFF8E1;color:#7A5800;font-size:11px;font-family:${F};">⚠️ تعذّر تحميل الصورة</div>
           <div style="background:#0B2A5A;color:#fff;font-size:11px;font-weight:700;text-align:center;padding:6px;font-family:${F};">${label}</div>
         </div>
       </td>`
     : `<td width="50%" style="padding:4px;vertical-align:top;">
-        <div style="height:175px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;font-family:${F};">لا توجد صورة</div>
+        <div style="height:100px;border:2px dashed #D0DCE8;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:11px;font-family:${F};">لا توجد صورة</div>
       </td>`;
 
   const photosHTML = (photoFront||photoBack) ? `
-    <div style="${BASE}margin-bottom:16px;">
+    <div style="${BASE}margin-bottom:9px;">
       <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">صور الجهاز</div>
       <table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>${photoCell(photoFront,'صورة الأمام')}${photoCell(photoBack,'صورة الخلف')}</tr></table>
     </div>` : '';
@@ -1760,15 +1769,22 @@ async function downloadPDF(){
     const pdf = new jsPDF({orientation:'p', unit:'mm', format:'a4'});
     const pw = pdf.internal.pageSize.getWidth();
     const ph = pdf.internal.pageSize.getHeight();
-    const ih = (canvas.height * pw) / canvas.width;
+    const margin = 6; // مم
+    const availW = pw - margin*2;
+    const availH = ph - margin*2;
 
-    let y = 0;
-    const epsilon = 2; // مم — هامش صغير لتفادي صفحة فاضية إضافية
-    while(y < ih - epsilon){
-      if(y > 0) pdf.addPage();
-      pdf.addImage(imgData,'JPEG',0,-y,pw,ih);
-      y += ph;
+    // نضغط الوثيقة بالكامل داخل صفحة واحدة (نحافظ على النسبة، ونقلّص العرض إذا لزم لتلائم الارتفاع)
+    const ratio = canvas.width / canvas.height;
+    let drawW = availW;
+    let drawH = drawW / ratio;
+    if(drawH > availH){
+      drawH = availH;
+      drawW = drawH * ratio;
     }
+    const offsetX = margin + (availW - drawW)/2;
+    const offsetY = margin + (availH - drawH)/2;
+
+    pdf.addImage(imgData,'JPEG',offsetX,offsetY,drawW,drawH);
 
     const fname = pdfFileLabel + '.pdf';
     pdf.save(fname);
@@ -1850,7 +1866,7 @@ async function apiPost(body){
 function genId(){const n=new Date();return 'HD-'+n.getFullYear()+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0')+'-'+Math.floor(1000+Math.random()*9000);}
 function showLoading(m){document.getElementById('loadingMsg').textContent=m;document.getElementById('loadingOverlay').classList.add('show');}
 function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show');}
-function showToast(msg,type=''){const t=document.getElementById('toast');t.className='toast show '+(type||'');document.getElementById('toastMsg').textContent=msg;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);}
+function showToast(msg,type=''){const t=document.getElementById('toast');t.className='toast show '+(type||'');document.getElementById('toastMsg').textContent=msg;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),type==='error'?6000:3200);}
 function loadScript(src){return new Promise((r,j)=>{const s=document.createElement('script');s.src=src;s.onload=r;s.onerror=j;document.head.appendChild(s);});}
 </script>
 </body>

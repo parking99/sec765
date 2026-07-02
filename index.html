@@ -223,6 +223,8 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-overlay p{color:#fff;font-size:14px;font-weight:600}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 22px;border-radius:26px;font-size:13px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:300;display:none;align-items:center;gap:7px}
+.pending-upload-btn{position:fixed;bottom:22px;right:16px;background:var(--orange);color:#fff;border:none;border-radius:26px;padding:11px 16px;font-family:inherit;font-size:12px;font-weight:700;display:none;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(212,105,30,.4);z-index:300;cursor:pointer}
+.pending-upload-btn .cnt{background:rgba(255,255,255,.25);border-radius:12px;padding:1px 8px;font-size:11px}
 .toast.show{display:flex;animation:fadeUp .3s ease}
 @keyframes fadeUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
 .toast.success{background:var(--green)}
@@ -468,6 +470,30 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
     </div>
   </div>
   <div class="card">
+    <div class="card-header"><div class="dot"></div>صور الجهاز عند الاستلام <span style="font-size:11px;color:var(--red);margin-right:6px">* إلزامية</span></div>
+    <div class="card-body">
+      <div class="cam-hint-top">يُرجى التقاط صورة واضحة تُظهر الجهاز من الأمام والخلف عند استلامك له</div>
+      <div class="cameras">
+        <div class="cam-block">
+          <div class="cam-title">من الأمام</div>
+          <div class="cam-zone" id="r_frontZone">
+            <input type="file" accept="image/*" capture="environment" onchange="loadImgR('front',this)">
+            <button type="button" class="cam-btn">📷 التقاط صورة</button>
+            <div class="cam-hint">التقط صورة بالكاميرا أو اختر من الملفات</div>
+          </div>
+        </div>
+        <div class="cam-block">
+          <div class="cam-title">من الخلف</div>
+          <div class="cam-zone" id="r_backZone">
+            <input type="file" accept="image/*" capture="environment" onchange="loadImgR('back',this)">
+            <button type="button" class="cam-btn">📷 التقاط صورة</button>
+            <div class="cam-hint">التقط صورة بالكاميرا أو اختر من الملفات</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
     <div class="card-header"><div class="dot"></div>اعتماد الموظف</div>
     <div class="card-body">
       <div class="cam-hint-top">توقيع الموظف باستلام الجهاز من بوابة الأمن</div>
@@ -556,6 +582,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
 </div>
 
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
+<button class="pending-upload-btn" id="pendingUploadBtn" onclick="retryPendingUploads(false)">🔄 إعادة رفع الصور <span class="cnt" id="pendingUploadCnt">0</span></button>
 
 <script>
 const APPS_SCRIPT_CODE = `// نظام تسليم واستلام الأجهزة
@@ -569,7 +596,8 @@ const COLS = [
   'ملاحظات_التسليم','الحالة',
   'تاريخ_الاستلام','رقم_موظف_المستلم',
   'اسم_موظف_المستلم','ملاحظات_الاستلام',
-  'صورة_الأمام','صورة_الخلف'
+  'صورة_الأمام','صورة_الخلف',
+  'صورة_الأمام_الاستلام','صورة_الخلف_الاستلام'
 ];
 function doGet(e)  { return handle(e); }
 function doPost(e) { return handle(e); }
@@ -621,7 +649,8 @@ function addRecord(d) {
     d['نوع_الجهاز'],d['الرقم_التسلسلي']||'',
     d['رقم_موظف_المسلم_له'],d['اسم_موظف_المسلم_له'],
     d['ملاحظات_التسليم']||'','معلقة',
-    '','','','','',''
+    '','','','','','',
+    '',''
   ]);
   return out({success:true});
 }
@@ -665,10 +694,15 @@ function uploadPhoto(d) {
   const b64 = d.base64 || '';
   const urlToStore = 'data:' + (d.mimeType||'image/jpeg') + ';base64,' + b64;
 
+  const isReceive = d.mode === 'receive';
+  const colName = d.side==='front'
+    ? (isReceive?'صورة_الأمام_الاستلام':'صورة_الأمام')
+    : (isReceive?'صورة_الخلف_الاستلام':'صورة_الخلف');
+
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
   const rows = sh.getDataRange().getValues();
   const headers = rows[0];
-  const col = headers.indexOf(d.side==='front'?'صورة_الأمام':'صورة_الخلف')+1;
+  const col = headers.indexOf(colName)+1;
   for (let i=1; i<rows.length; i++) {
     if (String(rows[i][0]) === String(d.docId)) {
       sh.getRange(i+1,col).setValue(urlToStore);
@@ -712,6 +746,7 @@ let allRecords   = [];
 let selectedGate = null;
 let deliverGate  = null;
 let deliverImgs  = {front:null,back:null};
+let receiverImgs = {front:null,back:null}; // صور الجهاز التي يلتقطها المُستلِم بنفسه عند الاستلام
 let currentCertId= null;
 let currentMode  = 'deliver';
 let refreshTimer = null;
@@ -728,6 +763,8 @@ const sigs = {};
   initSig('d'); initSig('r');
   refreshData(true);
   startAutoRefresh();
+  updatePendingBadge();
+  if(navigator.onLine!==false) retryPendingUploads(true);
 })();
 
 function initSig(p){
@@ -874,12 +911,20 @@ async function openReceiveForm(docId){
   clearSig('r');
   // مسح الصور القديمة من أي عملية تسليم سابقة
   deliverImgs = {front:null, back:null};
+  // مسح صور المُستلِم الجديدة (إن وُجدت من محاولة سابقة) وإعادة تهيئة مربعات الكاميرا
+  receiverImgs = {front:null, back:null};
+  ['front','back'].forEach(side=>{
+    const z=document.getElementById('r_'+side+'Zone');
+    if(!z)return;
+    z.innerHTML=`<input type="file" accept="image/*" capture="environment" onchange="loadImgR('${side}',this)"><button type="button" class="cam-btn">📷 التقاط صورة</button><div class="cam-hint">التقط صورة بالكاميرا أو اختر من الملفات</div>`;
+    z.classList.remove('has-img');
+  });
   const toThumb=url=>{const m=url.match(/[?&]id=([a-zA-Z0-9_-]+)/);return m?`https://drive.google.com/thumbnail?id=${m[1]}&sz=w400`:url;};
   const fp=r['صورة_الأمام']||'',bp=r['صورة_الخلف']||'';
   const ph=document.getElementById('r_existingPhotos');
   const renderPhotos=(fSrc,bSrc)=>{
     if(!fSrc&&!bSrc){ph.innerHTML='';return;}
-    ph.innerHTML=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px">📷 صور الجهاز</div>
+    ph.innerHTML=`<div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px">📷 صور الجهاز عند التسليم (الأصلية)</div>
     <div class="drive-photos">
       ${fSrc?`<div class="drive-photo" onclick="openLightbox('${fSrc}')"><img src="${fSrc}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الأمام</div></div>`:''}
       ${bSrc?`<div class="drive-photo" onclick="openLightbox('${bSrc}')"><img src="${bSrc}" class="loading" onload="this.classList.remove('loading')" onerror="this.parentElement.innerHTML='<div class=\\'dp-err\\'>⚠️ تعذّر التحميل</div>'"><div class="dp-lbl">الخلف</div></div>`:''}
@@ -957,6 +1002,22 @@ function loadImg(side,input){
   reader.readAsDataURL(file);
 }
 
+// صور المُستلِم عند الاستلام (منفصلة عن صور المُسلِّم)
+function loadImgR(side,input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    receiverImgs[side]=e.target.result;
+    const z=document.getElementById('r_'+side+'Zone');
+    z.classList.add('has-img');
+    z.innerHTML=`<img class="preview" src="${e.target.result}">
+      <div class="cam-label">✅ تم الالتقاط</div>
+      <div class="cam-hint">اضغط للتغيير</div>
+      <input type="file" accept="image/*" capture="environment" onchange="loadImgR('${side}',this)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
 async function submitDeliver(){
   if(!deliverGate){showToast('⚠️ اختر البوابة أولاً','error');return;}
   const empId=document.getElementById('d_empId').value.trim();
@@ -985,26 +1046,26 @@ async function submitDeliver(){
 
     // ── رفع الصور مع معالجة أخطاء حقيقية (لا نُخفي الفشل) ──
     showLoading('جاري رفع صورة الأمام...');
-    let frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front);
+    let frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front,'deliver');
     showLoading('جاري رفع صورة الخلف...');
-    let backResult  = await uploadPhotoWithRetry(certId,'back', deliverImgs.back);
+    let backResult  = await uploadPhotoWithRetry(certId,'back', deliverImgs.back,'deliver');
 
     // محاولة أخيرة إضافية للصورة/الصور التي فشلت فقط (تحسّن الموثوقية في الشبكات الضعيفة)
     if(!frontResult.success){
       showLoading('إعادة محاولة رفع صورة الأمام...');
-      frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front,2);
+      frontResult = await uploadPhotoWithRetry(certId,'front',deliverImgs.front,'deliver',2);
     }
     if(!backResult.success){
       showLoading('إعادة محاولة رفع صورة الخلف...');
-      backResult = await uploadPhotoWithRetry(certId,'back',deliverImgs.back,2);
+      backResult = await uploadPhotoWithRetry(certId,'back',deliverImgs.back,'deliver',2);
     }
 
     if(!frontResult.success || !backResult.success){
       const parts=[];
-      if(!frontResult.success) parts.push('صورة الأمام: '+(frontResult.error||'فشل غير معروف'));
-      if(!backResult.success)  parts.push('صورة الخلف: '+(backResult.error||'فشل غير معروف'));
+      if(!frontResult.success){ parts.push('صورة الأمام: '+(frontResult.error||'فشل غير معروف')); queuePendingUpload(certId,'deliver','front',deliverImgs.front); }
+      if(!backResult.success){  parts.push('صورة الخلف: '+(backResult.error||'فشل غير معروف'));  queuePendingUpload(certId,'deliver','back',deliverImgs.back); }
       console.error('فشل رفع الصور:', {front:frontResult, back:backResult});
-      showToast('⚠️ تم حفظ السجل لكن فشل رفع '+parts.join(' | '),'error');
+      showToast('⚠️ تم حفظ السجل لكن فشل رفع '+parts.join(' | ')+' — تم حفظ الصور محلياً وستتم إعادة المحاولة تلقائياً','error');
     }
 
     currentCertId=certId; currentMode='deliver';
@@ -1046,23 +1107,23 @@ async function compressImgAuto(dataUrl, targetMaxChars=90000){
   return result;
 }
 
-async function uploadPhoto(docId,side,dataUrl){
+async function uploadPhoto(docId,side,dataUrl,mode='deliver'){
   // اضغط الصورة بشكل تكراري حتى تضمن حجم آمن لتخزينها كـ base64 مباشرة
   const compressed = await compressImgAuto(dataUrl);
   const base64=compressed.replace(/^data:[^;]+;base64,/,'');
   const mimeType=compressed.match(/^data:([^;]+);/)?.[1]||'image/jpeg';
-  console.log(`📦 حجم صورة ${side} بعد الضغط: ${(base64.length/1024).toFixed(1)} KB`);
-  return apiPost({action:'uploadPhoto',docId,side,base64,mimeType});
+  console.log(`📦 حجم صورة ${side} (${mode}) بعد الضغط: ${(base64.length/1024).toFixed(1)} KB`);
+  return apiPost({action:'uploadPhoto',docId,side,base64,mimeType,mode});
 }
 
 // رفع مع إعادة محاولة (تأخير تصاعدي) + إرجاع تفاصيل الخطأ الحقيقية بدل إخفائها
-async function uploadPhotoWithRetry(docId, side, dataUrl, maxRetries=4){
+async function uploadPhotoWithRetry(docId, side, dataUrl, mode='deliver', maxRetries=4){
   let lastError = null;
   for(let attempt=0; attempt<=maxRetries; attempt++){
     try{
-      const result = await uploadPhoto(docId, side, dataUrl);
+      const result = await uploadPhoto(docId, side, dataUrl, mode);
       if(result && result.success){
-        console.log(`✅ رفع ${side} نجح، محاولة ${attempt+1}:`, result);
+        console.log(`✅ رفع ${side} (${mode}) نجح، محاولة ${attempt+1}:`, result);
         return {success:true, url: result.url};
       }
       lastError = result?.error || 'استجابة غير متوقعة من الخادم';
@@ -1076,6 +1137,51 @@ async function uploadPhotoWithRetry(docId, side, dataUrl, maxRetries=4){
   return {success:false, error: lastError};
 }
 
+// ── طابور الصور المعلّقة: عند فشل الرفع نهائياً نحفظ الصورة محلياً ونتيح إعادة المحاولة لاحقاً ──
+function getPendingUploads(){
+  try{ return JSON.parse(localStorage.getItem('pendingUploads')||'[]'); }
+  catch(_){ return []; }
+}
+function savePendingUploads(arr){
+  try{ localStorage.setItem('pendingUploads', JSON.stringify(arr)); }catch(_){}
+  updatePendingBadge();
+}
+function queuePendingUpload(docId, mode, side, dataUrl){
+  const arr = getPendingUploads();
+  arr.push({docId, mode, side, dataUrl, ts: Date.now()});
+  savePendingUploads(arr);
+}
+function updatePendingBadge(){
+  const n = getPendingUploads().length;
+  const btn = document.getElementById('pendingUploadBtn');
+  if(!btn) return;
+  btn.style.display = n ? 'flex' : 'none';
+  const cnt = document.getElementById('pendingUploadCnt');
+  if(cnt) cnt.textContent = n;
+}
+async function retryPendingUploads(auto){
+  const arr = getPendingUploads();
+  if(!arr.length){ if(!auto) showToast('✅ لا توجد صور معلقة'); return; }
+  if(typeof navigator!=='undefined' && navigator.onLine===false){
+    if(!auto) showToast('⚠️ لا يوجد اتصال بالإنترنت حالياً','error');
+    return;
+  }
+  const remaining=[];
+  for(let i=0;i<arr.length;i++){
+    const it=arr[i];
+    showLoading(`إعادة رفع الصور المعلقة (${i+1}/${arr.length})...`);
+    try{
+      const r = await uploadPhotoWithRetry(it.docId, it.side, it.dataUrl, it.mode||'deliver', 2);
+      if(!r.success) remaining.push(it);
+    }catch(_){ remaining.push(it); }
+  }
+  hideLoading();
+  savePendingUploads(remaining);
+  if(remaining.length) showToast(`⚠️ ${remaining.length} صورة ما زالت متعذرة الرفع — سيُعاد المحاولة تلقائياً عند توفر الاتصال`,'error');
+  else{ showToast('✅ تم رفع جميع الصور المعلقة بنجاح','success'); await silentRefresh(); }
+}
+window.addEventListener('online', ()=>retryPendingUploads(true));
+
 async function submitReceive(){
   if(!currentCertId){showToast('⚠️ لم يتم تحديد العهدة','error');return;}
   const rEmpId=document.getElementById('r_receiverEmpId').value.trim();
@@ -1084,20 +1190,47 @@ async function submitReceive(){
   if(!rEmpName){showToast('⚠️ اسم المستلم غير مكتمل','error');return;}
   const rNotes=document.getElementById('r_receiverNotes').value.trim();
   if(!rNotes){showToast('⚠️ الملاحظات إجبارية — أدخل ملاحظتك عند الاستلام','error');return;}
+  if(!receiverImgs.front){showToast('⚠️ أضف صورة الأمام عند الاستلام','error');return;}
+  if(!receiverImgs.back){showToast('⚠️ أضف صورة الخلف عند الاستلام','error');return;}
   if(isBlankSig('r')){showToast('⚠️ يرجى التوقيع أولاً','error');return;}
   const now=new Date();
   const dStr=now.toLocaleDateString('ar-SA',{year:'numeric',month:'2-digit',day:'2-digit'});
   const tStr=now.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+  const certId=currentCertId;
   try{
     showLoading('جاري تسجيل الاستلام...');
-    await apiPost({action:'receive','رقم_الوثيقة':currentCertId,
+    await apiPost({action:'receive','رقم_الوثيقة':certId,
       'تاريخ_الاستلام':dStr+' '+tStr,
       'رقم_موظف_المستلم':rEmpId,
       'اسم_موظف_المستلم':rEmpName,
       'ملاحظات_الاستلام':document.getElementById('r_receiverNotes').value||''});
+
+    // ── رفع صور المُستلِم مع معالجة أخطاء حقيقية ──
+    showLoading('جاري رفع صورة الأمام (الاستلام)...');
+    let frontResult = await uploadPhotoWithRetry(certId,'front',receiverImgs.front,'receive');
+    showLoading('جاري رفع صورة الخلف (الاستلام)...');
+    let backResult  = await uploadPhotoWithRetry(certId,'back', receiverImgs.back,'receive');
+
+    if(!frontResult.success){
+      showLoading('إعادة محاولة رفع صورة الأمام (الاستلام)...');
+      frontResult = await uploadPhotoWithRetry(certId,'front',receiverImgs.front,'receive',2);
+    }
+    if(!backResult.success){
+      showLoading('إعادة محاولة رفع صورة الخلف (الاستلام)...');
+      backResult = await uploadPhotoWithRetry(certId,'back',receiverImgs.back,'receive',2);
+    }
+
+    if(!frontResult.success || !backResult.success){
+      const parts=[];
+      if(!frontResult.success){ parts.push('صورة الأمام: '+(frontResult.error||'فشل غير معروف')); queuePendingUpload(certId,'receive','front',receiverImgs.front); }
+      if(!backResult.success){  parts.push('صورة الخلف: '+(backResult.error||'فشل غير معروف'));  queuePendingUpload(certId,'receive','back',receiverImgs.back); }
+      console.error('فشل رفع صور الاستلام:', {front:frontResult, back:backResult});
+      showToast('⚠️ تم تسجيل الاستلام لكن فشل رفع '+parts.join(' | ')+' — تم حفظ الصور محلياً وستتم إعادة المحاولة تلقائياً','error');
+    }
+
     await silentRefresh();
     currentMode='receive';
-    showToast('✅ تم تسجيل الاستلام بنجاح','success');
+    if(frontResult.success && backResult.success) showToast('✅ تم تسجيل الاستلام بنجاح','success');
     previewCert('receive');
   }catch(e){showToast('❌ فشل: '+e.message,'error');}
   finally{hideLoading();}
@@ -1177,7 +1310,8 @@ function buildCertHTML(mode, forPDF){
 
   let devType,serial,empId,empName,notes,receiverNotes='',gate,gateNum;
   let senderEmpId='—',senderEmpName='—',receiverEmpId='—',receiverEmpName='—';
-  let photoFront='', photoBack=''; // روابط أو base64 للصور
+  let photoFront='', photoBack=''; // صور المُسلِّم (عند التسليم)
+  let recvPhotoFront='', recvPhotoBack=''; // صور المُستلِم (عند الاستلام)
 
   if(isD){
     devType=document.getElementById('d_deviceType').value||'—';
@@ -1204,10 +1338,13 @@ function buildCertHTML(mode, forPDF){
     receiverEmpId=document.getElementById('r_receiverEmpId').value||'—';
     receiverEmpName=document.getElementById('r_receiverEmpName').value||'—';
     receiverNotes=document.getElementById('r_receiverNotes').value||'';
-    // صور الاستلام — محفوظة في deliverImgs بعد تحويلها (يتم في openReceiveForm)
+    // صور المُسلِّم الأصلية — محفوظة في deliverImgs بعد تحويلها (يتم في openReceiveForm)
     const rec2=allRecords.find(r=>String(r['رقم_الوثيقة'])===String(certId));
     photoFront = deliverImgs.front || (rec2?rec2['صورة_الأمام']:'') || '';
     photoBack  = deliverImgs.back  || (rec2?rec2['صورة_الخلف']:'') || '';
+    // صور المُستلِم الجديدة — محفوظة في receiverImgs عند الالتقاط، أو من السجل إن كانت مرفوعة مسبقاً
+    recvPhotoFront = receiverImgs.front || (rec2?rec2['صورة_الأمام_الاستلام']:'') || '';
+    recvPhotoBack  = receiverImgs.back  || (rec2?rec2['صورة_الخلف_الاستلام']:'') || '';
   }
 
   const sigPrefix=isD?'d':'r';
@@ -1251,12 +1388,26 @@ function buildCertHTML(mode, forPDF){
   const photosHTML = (photoFront||photoBack) ? `
     <div style="${BASE}margin-bottom:9px;">
       <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">
-        صور الجهاز
+        ${isD?'صور الجهاز':'صور الجهاز عند التسليم (المُسلِّم)'}
       </div>
       <table width="100%" cellspacing="0" cellpadding="0" border="0">
         <tr>
           ${photoCell(photoFront,'صورة الأمام')}
           ${photoCell(photoBack,'صورة الخلف')}
+        </tr>
+      </table>
+    </div>` : '';
+
+  // صور المُستلِم — تظهر فقط في وثيقة الاستلام
+  const recvPhotosHTML = (!isD && (recvPhotoFront||recvPhotoBack)) ? `
+    <div style="${BASE}margin-bottom:9px;">
+      <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">
+        صور الجهاز عند الاستلام (المُستلِم)
+      </div>
+      <table width="100%" cellspacing="0" cellpadding="0" border="0">
+        <tr>
+          ${photoCell(recvPhotoFront,'صورة الأمام')}
+          ${photoCell(recvPhotoBack,'صورة الخلف')}
         </tr>
       </table>
     </div>` : '';
@@ -1328,6 +1479,7 @@ function buildCertHTML(mode, forPDF){
 
     <!-- صور الجهاز -->
     ${photosHTML}
+    ${recvPhotosHTML}
 
     <!-- بيانات المُسلِّم -->
     <div style="${BASE}margin-bottom:9px;">
@@ -1491,6 +1643,8 @@ function buildViewOnlyCert(r){
   const receiveNotes = r['ملاحظات_الاستلام']||'';
   const photoFront = r['صورة_الأمام']||'';
   const photoBack  = r['صورة_الخلف']||'';
+  const recvPhotoFront = r['صورة_الأمام_الاستلام']||'';
+  const recvPhotoBack  = r['صورة_الخلف_الاستلام']||'';
 
   const F="'IBM Plex Sans Arabic','Noto Sans Arabic',Arial,sans-serif";
   const BASE=`font-family:${F};direction:rtl;unicode-bidi:embed;text-align:right;`;
@@ -1514,8 +1668,14 @@ function buildViewOnlyCert(r){
 
   const photosHTML = (photoFront||photoBack) ? `
     <div style="${BASE}margin-bottom:9px;">
-      <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">صور الجهاز</div>
+      <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">صور الجهاز عند التسليم (المُسلِّم)</div>
       <table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>${photoCell(photoFront,'صورة الأمام')}${photoCell(photoBack,'صورة الخلف')}</tr></table>
+    </div>` : '';
+
+  const recvPhotosHTML = (recvPhotoFront||recvPhotoBack) ? `
+    <div style="${BASE}margin-bottom:9px;">
+      <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">صور الجهاز عند الاستلام (المُستلِم)</div>
+      <table width="100%" cellspacing="0" cellpadding="0" border="0"><tr>${photoCell(recvPhotoFront,'صورة الأمام')}${photoCell(recvPhotoBack,'صورة الخلف')}</tr></table>
     </div>` : '';
 
   const field=(lbl,val,bg='#F4F8FC',border='#00AEEF',valColor='#0B2A5A')=>`
@@ -1554,6 +1714,7 @@ function buildViewOnlyCert(r){
     </div>
 
     ${photosHTML}
+    ${recvPhotosHTML}
 
     <div style="${BASE}margin-bottom:14px;">
       ${sec('بيانات المُسلِّم')}
@@ -1679,6 +1840,16 @@ async function downloadPDF(){
         showLoading('جاري تحميل صورة الخلف...');
         recCopy['صورة_الخلف'] = await fetchImgBase64(bUrl) || bUrl;
       }
+      const rfUrl = recCopy['صورة_الأمام_الاستلام']||'';
+      const rbUrl = recCopy['صورة_الخلف_الاستلام']||'';
+      if(rfUrl && !rfUrl.startsWith('data:')){
+        showLoading('جاري تحميل صورة الأمام (الاستلام)...');
+        recCopy['صورة_الأمام_الاستلام'] = await fetchImgBase64(rfUrl) || rfUrl;
+      }
+      if(rbUrl && !rbUrl.startsWith('data:')){
+        showLoading('جاري تحميل صورة الخلف (الاستلام)...');
+        recCopy['صورة_الخلف_الاستلام'] = await fetchImgBase64(rbUrl) || rbUrl;
+      }
       showLoading('جاري بناء الوثيقة...');
       certHTML = buildViewOnlyCert(recCopy);
       pdfFileLabel = 'سجل_' + (viewingRecordId||'');
@@ -1686,6 +1857,9 @@ async function downloadPDF(){
       // ── جمع الصور لوضع التسليم/الاستلام النشط ──
       let pFront = deliverImgs.front || null;
       let pBack  = deliverImgs.back  || null;
+
+      let rFront = receiverImgs.front || null;
+      let rBack  = receiverImgs.back  || null;
 
       if(currentMode === 'receive'){
         const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
@@ -1696,13 +1870,28 @@ async function downloadPDF(){
           else if(fUrl){ showLoading('جاري تحميل صورة الأمام...'); pFront = await fetchImgBase64(fUrl) || null; }
           if(bUrl.startsWith('data:')) pBack = bUrl;
           else if(bUrl){ showLoading('جاري تحميل صورة الخلف...'); pBack = await fetchImgBase64(bUrl) || null; }
+
+          const rfUrl = rec['صورة_الأمام_الاستلام']||'';
+          const rbUrl = rec['صورة_الخلف_الاستلام']||'';
+          if(!rFront){
+            if(rfUrl.startsWith('data:')) rFront = rfUrl;
+            else if(rfUrl){ showLoading('جاري تحميل صورة الأمام (الاستلام)...'); rFront = await fetchImgBase64(rfUrl) || null; }
+          }
+          if(!rBack){
+            if(rbUrl.startsWith('data:')) rBack = rbUrl;
+            else if(rbUrl){ showLoading('جاري تحميل صورة الخلف (الاستلام)...'); rBack = await fetchImgBase64(rbUrl) || null; }
+          }
         }
       }
 
       const savedFront = deliverImgs.front;
       const savedBack  = deliverImgs.back;
+      const savedRFront = receiverImgs.front;
+      const savedRBack  = receiverImgs.back;
       if(pFront) deliverImgs.front = pFront;
       if(pBack)  deliverImgs.back  = pBack;
+      if(rFront) receiverImgs.front = rFront;
+      if(rBack)  receiverImgs.back  = rBack;
       const savedConv = _convertedPhotos;
       _convertedPhotos = {front:null, back:null}; // أوقف تدخّل _convertedPhotos أثناء PDF
 
@@ -1712,6 +1901,8 @@ async function downloadPDF(){
       _convertedPhotos = savedConv; // استعد
       deliverImgs.front = savedFront;
       deliverImgs.back  = savedBack;
+      receiverImgs.front = savedRFront;
+      receiverImgs.back  = savedRBack;
       pdfFileLabel = (currentMode==='deliver'?'تسليم':'استلام')+'_'+(currentCertId||'');
     }
 
@@ -1841,11 +2032,23 @@ function copyCode(){
 
 async function apiGet(action){const r=await fetch(`${sheetUrl}?action=${action}&t=${Date.now()}`);return r.json();}
 async function apiPost(body){
+  if(typeof navigator!=='undefined' && navigator.onLine===false){
+    throw new Error('لا يوجد اتصال بالإنترنت حالياً — تحقق من الشبكة وحاول مجدداً');
+  }
   let r;
   try{
-    r = await fetch(sheetUrl,{method:'POST',body:JSON.stringify(body)});
+    const controller = new AbortController();
+    const timer = setTimeout(()=>controller.abort(), 25000);
+    try{
+      r = await fetch(sheetUrl,{method:'POST',body:JSON.stringify(body),signal:controller.signal});
+    }finally{
+      clearTimeout(timer);
+    }
   }catch(networkErr){
     console.error('خطأ شبكة في apiPost:', networkErr);
+    if(networkErr && networkErr.name==='AbortError'){
+      throw new Error('انتهت مهلة الاتصال بالخادم — الشبكة بطيئة جداً، حاول مجدداً');
+    }
     throw new Error('تعذر الاتصال بالخادم — تحقق من الإنترنت أو الرابط');
   }
   const text = await r.text();

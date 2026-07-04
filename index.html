@@ -425,7 +425,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
     <div class="card-body">
       <div class="frozen-notice">🔒 البيانات مقفّلة — مصدرها سجل التسليم</div>
       <div class="form-row">
-        <div class="field"><label>رقم الوثيقة</label><input type="text" id="r_certId" class="locked" readonly></div>
+        <div class="field"><label>رقم النموذج</label><input type="text" id="r_certId" class="locked" readonly></div>
         <div class="field"><label>الموقع</label><input type="text" id="r_location" class="locked" readonly></div>
       </div>
       <div class="form-row">
@@ -590,7 +590,7 @@ const HANDOVER_SHEET = 'العهد';
 const EMP_SHEET      = 'الموظفون';
 const DRIVE_FOLDER   = 'عهد_الأجهزة_صور';
 const COLS = [
-  'رقم_الوثيقة','التاريخ','الوقت','الموقع',
+  'رقم_النموذج','التاريخ','الوقت','الموقع',
   'نوع_الجهاز','الرقم_التسلسلي',
   'رقم_موظف_المسلم_له','اسم_موظف_المسلم_له',
   'ملاحظات_التسليم','الحالة',
@@ -645,7 +645,7 @@ function addRecord(d) {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
   if (!sh) return out({error:'Sheet not found'});
   sh.appendRow([
-    d['رقم_الوثيقة'],d['التاريخ'],d['الوقت'],d['الموقع'],
+    d['رقم_النموذج'],d['التاريخ'],d['الوقت'],d['الموقع'],
     d['نوع_الجهاز'],d['الرقم_التسلسلي']||'',
     d['رقم_موظف_المسلم_له'],d['اسم_موظف_المسلم '],
     d['ملاحظات_التسليم']||'','معلقة',
@@ -660,7 +660,7 @@ function markReceived(d) {
   const headers = rows[0];
   const idx = r => headers.indexOf(r)+1;
   for (let i=1; i<rows.length; i++) {
-    if (String(rows[i][0]) === String(d['رقم_الوثيقة'])) {
+    if (String(rows[i][0]) === String(d['رقم_النموذج'])) {
       sh.getRange(i+1,idx('الحالة')).setValue('مُستلمة');
       sh.getRange(i+1,idx('تاريخ_الاستلام')).setValue(d['تاريخ_الاستلام']||'');
       sh.getRange(i+1,idx('رقم_موظف_المستلم')).setValue(d['رقم_موظف_المستلم']||'');
@@ -875,7 +875,7 @@ function refreshGatePanel(){
   const w=document.getElementById('pendingTableWrap');
   if(!recs.length){w.innerHTML=`<div class="empty-state"><div class="e-icon">✅</div><p>لا توجد عهد معلقة في هذا الموقع</p></div>`;return;}
   w.innerHTML=`<table class="pending-table"><thead><tr>
-    <th>رقم الوثيقة</th><th>الجهاز</th><th>المسلم </th><th>التاريخ</th><th>الحالة</th><th>إجراء</th>
+    <th>رقم النموذج</th><th>الجهاز</th><th>المسلم </th><th>التاريخ</th><th>الحالة</th><th>إجراء</th>
   </tr></thead><tbody>
   ${recs.map(r=>`<tr style="cursor:pointer;" onclick="viewRecordDetails('${r['رقم_الوثيقة']}')">
     <td style="font-weight:700;color:#C8960C;font-size:11px">${r['رقم_الوثيقة']||'—'}</td>
@@ -1375,7 +1375,7 @@ function buildCertHTML(mode, forPDF){
   const typeColor=isD?'#1565C0':'#1A7A4A';
   const typeBg=isD?'#EBF4FC':'#EAF5F0';
   const typeBorder=isD?'#1565C0':'#1A7A4A';
-  const typeLabel=isD?'وثيقة تسليم':'وثيقة استلام';
+  const typeLabel=isD?'نموذج تسليم':'نموذج استلام';
   const confirmText=isD
     ?`تم تسليم الجهاز المذكور في ${gate} بتاريخ ${dStr}. يُقرّ المُسلِّم ${senderEmpName} بتسليمه وفق ما هو مذكور في هذا النموذج.`
     :`تم استلام الجهاز رسمياً في ${gate} بتاريخ ${dStr}. يُقرّ المُستلِم ${receiverEmpName} بأنه تسلّم الجهاز من ${senderEmpName} ويتحمل المسؤولية الكاملة عنه.`;
@@ -1409,7 +1409,7 @@ function buildCertHTML(mode, forPDF){
       </table>
     </div>` : '';
 
-  // صور المُستلِم — تظهر فقط في وثيقة الاستلام
+  // صور المُستلِم — تظهر فقط في نموذج الاستلام
   const recvPhotosHTML = (!isD && (recvPhotoFront||recvPhotoBack)) ? `
     <div style="${BASE}margin-bottom:9px;">
       <div style="${BASE}font-size:11px;font-weight:700;color:#6B7A8D;padding-bottom:7px;border-bottom:2px solid #E0EAF2;margin-bottom:12px;">
@@ -1530,7 +1530,7 @@ function buildCertHTML(mode, forPDF){
       </div>
     </div>
 
-    <!-- ملاحظات المستلم (تظهر فقط في وثيقة الاستلام) -->
+    <!-- ملاحظات المستلم (تظهر فقط في نموذج الاستلام) -->
     ${(!isD)?`<div style="${BASE}margin-bottom:9px;">
       ${sec('ملاحظات المستلم')}
       <div style="${BASE}background:#EAF5F0;border-radius:8px;padding:9px 13px;font-size:12px;color:#0A4A2A;line-height:1.6;border-right:4px solid #1A7A4A;font-weight:500;">
@@ -1602,7 +1602,7 @@ function previewCert(mode){
 // ── عرض تفاصيل سجل من نتائج البحث (قراءة فقط، بلا تعديل) ──
 let viewingRecordId = null;
 async function viewRecordDetails(docId){
-  const r = allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
+  const r = allRecords.find(x=>String(x['رقم_النموذج'])===String(docId));
   if(!r){ showToast('❌ لم يُعثر على السجل','error'); return; }
   viewingRecordId = docId;
 
@@ -1643,7 +1643,7 @@ function buildViewOnlyCert(r){
   const gate = r['الموقع']||'—';
   const gObj = GATES.find(g=>g.name===gate);
   const gateNum = gObj?gObj.num:(gate.replace(/[^\d]/g,'')||'?');
-  const certId = r['رقم_الوثيقة']||'—';
+  const certId = r['رقم_النموذج']||'—';
   const devType = r['نوع_الجهاز']||'—';
   const serial = r['الرقم_التسلسلي']||'';
   const senderEmpId = r['رقم_موظف_المسلم_له']||'—';
@@ -1838,7 +1838,7 @@ async function downloadPDF(){
 
     if(viewingRecordId){
       // ── وضع العرض من نتائج البحث: نبني من بيانات السجل مباشرة، نحوّل صور Drive القديمة إن وُجدت ──
-      const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(viewingRecordId));
+      const rec = allRecords.find(r=>String(r['رقم_النموذج'])===String(viewingRecordId));
       if(!rec){ throw new Error('السجل غير موجود'); }
       const recCopy = Object.assign({}, rec);
       const fUrl = recCopy['صورة_الأمام']||'';
@@ -1861,7 +1861,7 @@ async function downloadPDF(){
         showLoading('جاري تحميل صورة الخلف (الاستلام)...');
         recCopy['صورة_الخلف_الاستلام'] = await fetchImgBase64(rbUrl) || rbUrl;
       }
-      showLoading('جاري بناء الوثيقة...');
+      showLoading('جاري بناء النموذج...');
       certHTML = buildViewOnlyCert(recCopy);
       pdfFileLabel = 'سجل_' + (viewingRecordId||'');
     } else {
@@ -1873,7 +1873,7 @@ async function downloadPDF(){
       let rBack  = receiverImgs.back  || null;
 
       if(currentMode === 'receive'){
-        const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
+        const rec = allRecords.find(r=>String(r['رقم_النموذج'])===String(currentCertId));
         if(rec){
           const fUrl = rec['صورة_الأمام']||'';
           const bUrl = rec['صورة_الخلف']||'';
@@ -1906,7 +1906,7 @@ async function downloadPDF(){
       const savedConv = _convertedPhotos;
       _convertedPhotos = {front:null, back:null}; // أوقف تدخّل _convertedPhotos أثناء PDF
 
-      showLoading('جاري بناء الوثيقة...');
+      showLoading('جاري بناء النموذج...');
       certHTML = buildCertHTML(currentMode, true);
 
       _convertedPhotos = savedConv; // استعد
@@ -1975,7 +1975,7 @@ async function downloadPDF(){
     const availW = pw - margin*2;
     const availH = ph - margin*2;
 
-    // نضغط الوثيقة بالكامل داخل صفحة واحدة (نحافظ على النسبة، ونقلّص العرض إذا لزم لتلائم الارتفاع)
+    // نضغط النموذج بالكامل داخل صفحة واحدة (نحافظ على النسبة، ونقلّص العرض إذا لزم لتلائم الارتفاع)
     const ratio = canvas.width / canvas.height;
     let drawW = availW;
     let drawH = drawW / ratio;

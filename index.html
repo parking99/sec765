@@ -1369,7 +1369,7 @@ function buildCertHTML(mode, forPDF){
   for(const[k,v]of Object.entries(devIcons)){if(devType.includes(k)){devIcon=v;break;}}
 
   const checksD=['لا توجد خدوش','لا يوجد كسر','الشاشة سليمة','الجهاز يعمل','الملحقات مكتملة'];
-  const checksR=['تم التسليم الرسمي','الجهاز مُستلم','المسؤولية محوّلة','تم التوثيق','السجل مُحدَّث'];
+  const checksR=['تم التسليم الرسمي','الجهاز مُستلم','الابلاغ عن الملاحظة في حالة وجوده ','تم الاعتماد','السجل مُحدَّث'];
   const checks=isD?checksD:checksR;
 
   const typeColor=isD?'#1565C0':'#1A7A4A';
@@ -1377,7 +1377,7 @@ function buildCertHTML(mode, forPDF){
   const typeBorder=isD?'#1565C0':'#1A7A4A';
   const typeLabel=isD?'وثيقة تسليم':'وثيقة استلام';
   const confirmText=isD
-    ?`تم تسليم الجهاز المذكور في ${gate} بتاريخ ${dStr}. يُقرّ المُسلِّم ${senderEmpName} بتسليمه وفق ما هو مذكور في هذه الوثيقة.`
+    ?`تم تسليم الجهاز المذكور في ${gate} بتاريخ ${dStr}. يُقرّ المُسلِّم ${senderEmpName} بتسليمه وفق ما هو مذكور في هذا النموذج.`
     :`تم استلام الجهاز رسمياً في ${gate} بتاريخ ${dStr}. يُقرّ المُستلِم ${receiverEmpName} بأنه تسلّم الجهاز من ${senderEmpName} ويتحمل المسؤولية الكاملة عنه.`;
 
   const F="'IBM Plex Sans Arabic','Noto Sans Arabic',Arial,sans-serif";

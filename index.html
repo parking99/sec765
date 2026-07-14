@@ -1844,6 +1844,29 @@ async function fetchImgBase64(url){
 function sanitizeFileName(str){
   return String(str||'').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_');
 }
+// حفظ/مشاركة PDF مع ضمان اسم الملف الصحيح — pdf.save() العادية لا تحترم الاسم أحياناً
+// على آيفون داخل WebView (مثل SharePoint) فيظهر معرّف عشوائي بدل الاسم؛ هذه الطريقة أوثق.
+async function savePdfWithName(pdf, fname){
+  const blob = pdf.output('blob');
+  try{
+    const file = new File([blob], fname, {type:'application/pdf'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:fname});
+      return;
+    }
+  }catch(shareErr){
+    if(shareErr && shareErr.name === 'AbortError') return; // المستخدم ألغى المشاركة، لا نكمل للتنزيل اليدوي
+    console.warn('فشلت المشاركة المباشرة، سيتم التنزيل اليدوي:', shareErr);
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname; a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
 async function downloadPDF(){
   const{jsPDF}=window.jspdf;
   if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
@@ -2017,7 +2040,7 @@ async function downloadPDF(){
     pdf.addImage(imgData,'JPEG',offsetX,offsetY,drawW,drawH);
 
     const fname = pdfFileLabel + '.pdf';
-    pdf.save(fname);
+    await savePdfWithName(pdf, fname);
     showToast('✅ تم تحميل PDF','success');
 
   }catch(e){

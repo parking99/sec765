@@ -590,7 +590,7 @@ const HANDOVER_SHEET = 'العهد';
 const EMP_SHEET      = 'الموظفون';
 const DRIVE_FOLDER   = 'عهد_الأجهزة_صور';
 const COLS = [
-  'رقم_النموذج','التاريخ','الوقت','الموقع',
+  'رقم_الوثيقة','التاريخ','الوقت','الموقع',
   'نوع_الجهاز','الرقم_التسلسلي',
   'رقم_موظف_المسلم_له','اسم_موظف_المسلم_له',
   'ملاحظات_التسليم','الحالة',
@@ -645,9 +645,9 @@ function addRecord(d) {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HANDOVER_SHEET);
   if (!sh) return out({error:'Sheet not found'});
   sh.appendRow([
-    d['رقم_النموذج'],d['التاريخ'],d['الوقت'],d['الموقع'],
+    d['رقم_الوثيقة'],d['التاريخ'],d['الوقت'],d['الموقع'],
     d['نوع_الجهاز'],d['الرقم_التسلسلي']||'',
-    d['رقم_موظف_المسلم_له'],d['اسم_موظف_المسلم '],
+    d['رقم_موظف_المسلم_له'],d['اسم_موظف_المسلم_له'],
     d['ملاحظات_التسليم']||'','معلقة',
     '','','','','','',
     '',''
@@ -660,7 +660,7 @@ function markReceived(d) {
   const headers = rows[0];
   const idx = r => headers.indexOf(r)+1;
   for (let i=1; i<rows.length; i++) {
-    if (String(rows[i][0]) === String(d['رقم_النموذج'])) {
+    if (String(rows[i][0]) === String(d['رقم_الوثيقة'])) {
       sh.getRange(i+1,idx('الحالة')).setValue('مُستلمة');
       sh.getRange(i+1,idx('تاريخ_الاستلام')).setValue(d['تاريخ_الاستلام']||'');
       sh.getRange(i+1,idx('رقم_موظف_المستلم')).setValue(d['رقم_موظف_المستلم']||'');
@@ -771,6 +771,7 @@ const sigs = {};
   startAutoRefresh();
   updatePendingBadge();
   retryPendingUploads(true);
+  retryPendingRecords(true);
 })();
 
 function initSig(p){
@@ -1053,11 +1054,17 @@ async function submitDeliver(){
   const certId=genId();
   try{
     showLoading('جاري حفظ التسليم...');
-    await apiPost({action:'add','رقم_الوثيقة':certId,'التاريخ':dStr,'الوقت':tStr,
+    const addBody={action:'add','رقم_الوثيقة':certId,'التاريخ':dStr,'الوقت':tStr,
       'الموقع':gate.name,'نوع_الجهاز':devType,
       'الرقم_التسلسلي':document.getElementById('d_serial').value||'',
       'رقم_موظف_المسلم_له':empId,'اسم_موظف_المسلم_له':empName,
-      'ملاحظات_التسليم':document.getElementById('d_notes').value||''});
+      'ملاحظات_التسليم':document.getElementById('d_notes').value||''};
+    try{
+      await apiPostWithRetry(addBody);
+    }catch(saveErr){
+      queuePendingRecord(addBody);
+      showToast('⚠️ تعذّر الاتصال بالخادم — تم حفظ السجل محلياً وسيُرسل تلقائياً عند عودة الاتصال','error');
+    }
 
     // ── رفع الصور مع معالجة أخطاء حقيقية (لا نُخفي الفشل) ──
     showLoading('جاري رفع صورة الأمام...');
@@ -1210,11 +1217,17 @@ async function submitReceive(){
   const certId=currentCertId;
   try{
     showLoading('جاري تسجيل الاستلام...');
-    await apiPost({action:'receive','رقم_الوثيقة':certId,
+    const receiveBody={action:'receive','رقم_الوثيقة':certId,
       'تاريخ_الاستلام':dStr+' '+tStr,
       'رقم_موظف_المستلم':rEmpId,
       'اسم_موظف_المستلم':rEmpName,
-      'ملاحظات_الاستلام':document.getElementById('r_receiverNotes').value||''});
+      'ملاحظات_الاستلام':document.getElementById('r_receiverNotes').value||''};
+    try{
+      await apiPostWithRetry(receiveBody);
+    }catch(saveErr){
+      queuePendingRecord(receiveBody);
+      showToast('⚠️ تعذّر الاتصال بالخادم — تم حفظ الاستلام محلياً وسيُرسل تلقائياً عند عودة الاتصال','error');
+    }
 
     // ── رفع صور المُستلِم مع معالجة أخطاء حقيقية ──
     showLoading('جاري رفع صورة الأمام (الاستلام)...');
@@ -1602,7 +1615,7 @@ function previewCert(mode){
 // ── عرض تفاصيل سجل من نتائج البحث (قراءة فقط، بلا تعديل) ──
 let viewingRecordId = null;
 async function viewRecordDetails(docId){
-  const r = allRecords.find(x=>String(x['رقم_النموذج'])===String(docId));
+  const r = allRecords.find(x=>String(x['رقم_الوثيقة'])===String(docId));
   if(!r){ showToast('❌ لم يُعثر على السجل','error'); return; }
   viewingRecordId = docId;
 
@@ -1643,7 +1656,7 @@ function buildViewOnlyCert(r){
   const gate = r['الموقع']||'—';
   const gObj = GATES.find(g=>g.name===gate);
   const gateNum = gObj?gObj.num:(gate.replace(/[^\d]/g,'')||'?');
-  const certId = r['رقم_النموذج']||'—';
+  const certId = r['رقم_الوثيقة']||'—';
   const devType = r['نوع_الجهاز']||'—';
   const serial = r['الرقم_التسلسلي']||'';
   const senderEmpId = r['رقم_موظف_المسلم_له']||'—';
@@ -1827,6 +1840,10 @@ async function fetchImgBase64(url){
   return null;
 }
 
+// تنظيف اسم الملف من الرموز غير المسموح بها في أسماء الملفات
+function sanitizeFileName(str){
+  return String(str||'').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_');
+}
 async function downloadPDF(){
   const{jsPDF}=window.jspdf;
   if(!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
@@ -1838,7 +1855,7 @@ async function downloadPDF(){
 
     if(viewingRecordId){
       // ── وضع العرض من نتائج البحث: نبني من بيانات السجل مباشرة، نحوّل صور Drive القديمة إن وُجدت ──
-      const rec = allRecords.find(r=>String(r['رقم_النموذج'])===String(viewingRecordId));
+      const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(viewingRecordId));
       if(!rec){ throw new Error('السجل غير موجود'); }
       const recCopy = Object.assign({}, rec);
       const fUrl = recCopy['صورة_الأمام']||'';
@@ -1863,7 +1880,9 @@ async function downloadPDF(){
       }
       showLoading('جاري بناء النموذج...');
       certHTML = buildViewOnlyCert(recCopy);
-      pdfFileLabel = 'سجل_' + (viewingRecordId||'');
+      { const gName=sanitizeFileName(recCopy['الموقع']||'بوابة');
+        const eName=sanitizeFileName(recCopy['اسم_موظف_المسلم_له']||'موظف');
+        pdfFileLabel = gName+'_'+eName; }
     } else {
       // ── جمع الصور لوضع التسليم/الاستلام النشط ──
       let pFront = deliverImgs.front || null;
@@ -1873,7 +1892,7 @@ async function downloadPDF(){
       let rBack  = receiverImgs.back  || null;
 
       if(currentMode === 'receive'){
-        const rec = allRecords.find(r=>String(r['رقم_النموذج'])===String(currentCertId));
+        const rec = allRecords.find(r=>String(r['رقم_الوثيقة'])===String(currentCertId));
         if(rec){
           const fUrl = rec['صورة_الأمام']||'';
           const bUrl = rec['صورة_الخلف']||'';
@@ -1914,7 +1933,16 @@ async function downloadPDF(){
       deliverImgs.back  = savedBack;
       receiverImgs.front = savedRFront;
       receiverImgs.back  = savedRBack;
-      pdfFileLabel = (currentMode==='deliver'?'تسليم':'استلام')+'_'+(currentCertId||'');
+      { let gName, eName;
+        if(currentMode==='deliver'){
+          const gObj=deliverGate?GATES.find(g=>g.id===deliverGate):null;
+          gName=sanitizeFileName(gObj?gObj.name:'بوابة');
+          eName=sanitizeFileName(document.getElementById('d_empName').value||'موظف');
+        }else{
+          gName=sanitizeFileName(document.getElementById('r_location').value||'بوابة');
+          eName=sanitizeFileName(document.getElementById('r_receiverEmpName').value||'موظف');
+        }
+        pdfFileLabel = gName+'_'+eName; }
     }
 
 // ── wrapper مرئي فعلياً داخل الصفحة (يحل مشكلة html2canvas مع العناصر خارج viewport) ──
@@ -2042,6 +2070,53 @@ function copyCode(){
 }
 
 async function apiGet(action){const r=await fetch(`${sheetUrl}?action=${action}&t=${Date.now()}`);return r.json();}
+// إعادة محاولة لعمليات الحفظ الأساسية (إضافة/استلام) — نفس فلسفة رفع الصور: لا نفقد السجل بسبب انقطاع شبكي مؤقت
+async function apiPostWithRetry(body, maxRetries=3){
+  let lastError=null;
+  for(let attempt=0; attempt<=maxRetries; attempt++){
+    try{ return await apiPost(body); }
+    catch(e){
+      lastError=e;
+      console.warn(`⚠️ محاولة ${attempt+1} لعملية ${body.action} فشلت:`, e.message);
+      if(attempt<maxRetries) await new Promise(res=>setTimeout(res,700*(attempt+1)));
+    }
+  }
+  throw lastError;
+}
+// طابور السجلات المعلّقة (add/receive) التي فشلت نهائياً — تُحفظ محلياً ويُعاد إرسالها تلقائياً عند توفر الاتصال
+function getPendingRecords(){
+  try{ return JSON.parse(localStorage.getItem('pendingRecords')||'[]'); }catch(_){ return []; }
+}
+function savePendingRecords(arr){
+  try{ localStorage.setItem('pendingRecords', JSON.stringify(arr)); }catch(_){}
+  updatePendingRecordsBadge();
+}
+function queuePendingRecord(body){
+  const arr=getPendingRecords();
+  arr.push({body, ts:Date.now()});
+  savePendingRecords(arr);
+}
+function updatePendingRecordsBadge(){
+  const n=getPendingRecords().length;
+  const btn=document.getElementById('pendingUploadBtn');
+  if(!btn) return;
+  if(n) btn.style.display='flex';
+  const cnt=document.getElementById('pendingUploadCnt');
+  if(cnt) cnt.textContent = (getPendingUploads().length + n);
+}
+async function retryPendingRecords(auto){
+  const arr=getPendingRecords();
+  if(!arr.length) return;
+  const remaining=[];
+  for(const it of arr){
+    try{ await apiPostWithRetry(it.body,1); }
+    catch(_){ remaining.push(it); }
+  }
+  savePendingRecords(remaining);
+  if(!remaining.length && arr.length){ showToast('✅ تم حفظ السجلات المعلّقة بنجاح','success'); await silentRefresh(); }
+}
+window.addEventListener('online', ()=>retryPendingRecords(true));
+
 async function apiPost(body){
   let r;
   try{

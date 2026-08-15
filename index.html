@@ -49,7 +49,6 @@ function getAll() {
   if (!sh || sh.getLastRow() < 2) return out({data:[]});
   const rows = sh.getDataRange().getValues();
   const headers = rows[0].slice();
-  // توافق مع شيتات قديمة أُنشئت قبل تصحيح اسم العمود — نطبّع الاسم بدل مطالبة المستخدم بتعديل الشيت يدوياً
   if (headers[0] === 'رقم_النموذج') headers[0] = 'رقم_الوثيقة';
   const data = rows.slice(1).map((r,i) => {
     const obj = {}; headers.forEach((h,j) => obj[h]=r[j]);

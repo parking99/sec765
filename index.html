@@ -534,14 +534,7 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
   <div class="card">
     <div class="card-header"><div class="dot"></div>إعدادات الاتصال</div>
     <div class="card-body">
-      <div class="field" style="margin-bottom:14px">
-        <label>رابط Web App (Apps Script)</label>
-        <input type="text" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/..." style="font-size:12px">
-      </div>
-      <div style="display:flex;gap:10px">
-        <button class="btn btn-primary" style="max-width:160px;padding:10px" onclick="saveUrl()">💾 حفظ</button>
-        <button class="btn btn-pdf" style="max-width:160px;padding:10px" onclick="testConnection()">🔌 اختبار الاتصال</button>
-      </div>
+      <button class="btn btn-pdf" style="max-width:160px;padding:10px" onclick="testConnection()">🔌 اختبار الاتصال</button>
       <div style="margin-top:10px" id="connStatus"></div>
     </div>
   </div>
@@ -555,22 +548,6 @@ main{max-width:880px;margin:22px auto;padding:0 14px 70px}
       </div>
       <button class="btn" style="background:var(--orange);color:#fff;max-width:220px;padding:10px" onclick="runCleanupDuplicates()">🧹 تنظيف السجلات المكررة</button>
       <div style="margin-top:10px" id="cleanupStatus"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-header"><div class="dot"></div>تعليمات الإعداد</div>
-    <div class="card-body">
-      <div class="setup-step">
-        <b>1.</b> افتح Google Sheets → أنشئ ملف جديد<br>
-        <b>2.</b> من القائمة: <b>Extensions → Apps Script</b><br>
-        <b>3.</b> الصق كود Apps Script المحدّث (متوفر عند الفريق التقني)<br>
-        <b>4.</b> اضغط <b>Deploy → New Deployment → Web App</b><br>
-        &nbsp;&nbsp;• Execute as: <b>Me</b> | Who has access: <b>Anyone</b><br>
-        <b>5.</b> انسخ الرابط وضعه أعلاه<br><br>
-        <b>📋 شيت "الموظفون":</b> العمود A = الرقم الوظيفي | العمود B = الاسم<br>
-        <b>📋 شيت "أنواع_العهد":</b> العمود A = أنواع الأجهزة<br>
-        <b>📋 شيت "العهد":</b> يُنشأ تلقائياً
-      </div>
     </div>
   </div>
 </div>
@@ -750,6 +727,11 @@ function uploadPhoto(d) {
   // المتصفح يضغط الصورة قبل الإرسال لضمان حجم صغير وآمن
   const b64 = d.base64 || '';
   const urlToStore = 'data:' + (d.mimeType||'image/jpeg') + ';base64,' + b64;
+  // خلية Google Sheets محدودة فعلياً بـ 50,000 حرف — لو وصلت صورة أكبر (عميل قديم لم يُحدَّث مثلاً)
+  // نرفضها برسالة واضحة بدل استثناء غامض من setValue قد لا يُفهم سببه
+  if (urlToStore.length > 49000) {
+    return out({error:'الصورة كبيرة جداً بعد الضغط (' + urlToStore.length + ' حرف، الحد 49000) — حدّث التطبيق وحاول مجدداً'});
+  }
 
   const isReceive = d.mode === 'receive';
   const colName = d.side==='front'
@@ -779,7 +761,7 @@ function out(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }`;
 
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwTAxcdHKfUspkBeKgY-5O9jE10Zhyn_34iHatVS-OAj_mpwiTUsQbOLHSpov-XVADa9Q/exec';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzKU8CvHDyLh1y8oGaKf1QClkWrwDVftNkXoAge9eofzEQvPL0WCcMAT1lft80q-j0jzQ/exec';
 
 function gateIconSVG(){
   return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -816,9 +798,6 @@ const sigs = {};
 (function init(){
   document.getElementById('headerDate').textContent =
     new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const saved = localStorage.getItem('sheetUrl');
-  if(saved) sheetUrl = saved;
-  document.getElementById('sheetUrlInput').value = sheetUrl;
   renderGates('gatesGrid', false);
   renderGates('deliverGatesGrid', true);
   initSig('d'); initSig('r');
@@ -1181,14 +1160,16 @@ function compressImg(dataUrl, maxW=800, quality=0.75){
   });
 }
 
-// ضغط الصورة بشكل تكراري حتى تصل لحجم آمن (أقل من 90KB كـ base64) — حجم أصغر = رفع أسرع وأضمن
-async function compressImgAuto(dataUrl, targetMaxChars=90000){
+// ضغط الصورة بشكل تكراري حتى تصل لحجم آمن — خلية Google Sheets محدودة فعلياً بـ 50,000 حرف؛
+// كان الاستهداف السابق 90,000 حرف (أكبر من حد الشيت!) فتنجح صور وتفشل أخرى عشوائياً حسب مدى قابليتها للضغط.
+// نستهدف الآن هامشاً واضحاً تحت الحد الفعلي لضمان نجاح الرفع دائماً
+async function compressImgAuto(dataUrl, targetMaxChars=42000){
   let w = 640, q = 0.6;
   let result = await compressImg(dataUrl, w, q);
   let tries = 0;
-  while(result.length > targetMaxChars && tries < 6){
-    if(q > 0.35) q -= 0.08;
-    else w = Math.round(w*0.8);
+  while(result.length > targetMaxChars && tries < 10){
+    if(q > 0.25) q -= 0.07;
+    else w = Math.round(w*0.75);
     result = await compressImg(dataUrl, w, q);
     tries++;
   }
@@ -2143,12 +2124,6 @@ async function refreshData(silent){
   }
 }
 
-function saveUrl(){
-  sheetUrl=document.getElementById('sheetUrlInput').value.trim()||SHEET_URL;
-  localStorage.setItem('sheetUrl',sheetUrl);
-  showToast('✅ تم حفظ الرابط','success');
-  refreshData();startAutoRefresh();
-}
 async function testConnection(){
   showLoading('جاري الاختبار...');
   try{
